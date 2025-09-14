@@ -1,0 +1,87 @@
+# Build artifacts
+bin/
+target/
+dist/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Configuration
+*.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite
+
+# Docker
+.dockerignore
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage reports
+coverage.out
+coverage.html
+
+# Node modules (for SDK development)
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Rust
+Cargo.lock
+target/
+
+# Test results
+.pytest_cache/
+.coverage
+
+# Backup files
+*.bak
+*.backup
+
+# Lock files
+package-lock.json
+yarn.lock

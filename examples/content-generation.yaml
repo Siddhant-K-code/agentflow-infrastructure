@@ -1,0 +1,78 @@
+apiVersion: agentflow.io/v1
+kind: Workflow
+metadata:
+  name: content-generation
+  labels:
+    environment: staging
+    team: marketing
+spec:
+  agents:
+    - name: research-agent
+      image: agentflow/research-agent:latest
+      llm:
+        provider: openai
+        model: gpt-4
+        config:
+          temperature: "0.3"
+          max_tokens: "2000"
+      resources:
+        memory: 512Mi
+        cpu: 100m
+      env:
+        RESEARCH_DEPTH: "comprehensive"
+        SOURCES: "web,academic,news"
+
+    - name: content-writer
+      image: agentflow/content-writer:latest
+      llm:
+        provider: anthropic
+        model: claude-3-opus
+        config:
+          temperature: "0.7"
+          max_tokens: "4000"
+      dependsOn: [research-agent]
+      resources:
+        memory: 1Gi
+        cpu: 200m
+      env:
+        WRITING_STYLE: "professional"
+        TARGET_AUDIENCE: "technical"
+        WORD_COUNT: "1500"
+
+    - name: editor-agent
+      image: agentflow/editor-agent:latest
+      llm:
+        provider: openai
+        model: gpt-4
+        config:
+          temperature: "0.2"
+      dependsOn: [content-writer]
+      resources:
+        memory: 256Mi
+        cpu: 100m
+      env:
+        EDITING_FOCUS: "clarity,grammar,flow"
+
+    - name: seo-optimizer
+      image: agentflow/seo-optimizer:latest
+      llm:
+        provider: openai
+        model: gpt-3.5-turbo
+        config:
+          temperature: "0.1"
+      dependsOn: [editor-agent]
+      resources:
+        memory: 256Mi
+        cpu: 50m
+      env:
+        TARGET_KEYWORDS: "AI,automation,productivity"
+        SEO_STRATEGY: "content-first"
+
+  triggers:
+    - webhook: "/api/v1/trigger/content-generation"
+    - schedule: "0 9 * * 1"  # Every Monday at 9 AM
+
+  config:
+    parallelism: 1  # Sequential execution for content pipeline
+    timeout: "45m"
+    retryPolicy: "linear"

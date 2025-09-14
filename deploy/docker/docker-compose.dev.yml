@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # Core Services
+  orchestrator:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.orchestrator
+    ports:
+      - "8080:8080"
+    environment:
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_URL=postgres://agentflow:password@postgres:5432/agentflow?sslmode=disable
+      - CLICKHOUSE_URL=tcp://clickhouse:9000
+      - TRACING_URL=http://jaeger:14268/api/traces
+    depends_on:
+      - postgres
+      - nats
+      - clickhouse
+    networks:
+      - agentflow
+
+  runtime:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.runtime
+    ports:
+      - "8081:8081"
+    environment:
+      - NATS_URL=nats://nats:4222
+      - ORCHESTRATOR_URL=http://orchestrator:8080
+    depends_on:
+      - nats
+      - orchestrator
+    networks:
+      - agentflow
+
+  llm-router:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile.llm-router
+    ports:
+      - "8082:8082"
+    environment:
+      - NATS_URL=nats://nats:4222
+      - PROVIDERS_OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PROVIDERS_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - nats
+    networks:
+      - agentflow
+
+  # Infrastructure Services
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=agentflow
+      - POSTGRES_USER=agentflow
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - agentflow
+
+  clickhouse:
+    image: yandex/clickhouse-server:latest
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse-config.xml:/etc/clickhouse-server/config.xml
+    networks:
+      - agentflow
+
+  nats:
+    image: nats:2.10
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["--jetstream", "--store_dir", "/data"]
+    volumes:
+      - nats_data:/data
+    networks:
+      - agentflow
+
+  # Observability
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - agentflow
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+    networks:
+      - agentflow
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - agentflow
+
+volumes:
+  postgres_data:
+  clickhouse_data:
+  nats_data:
+  grafana_data:
+  prometheus_data:
+
+networks:
+  agentflow:
+    driver: bridge

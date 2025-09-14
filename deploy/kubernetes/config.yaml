@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agentflow-secrets
+  namespace: agentflow
+type: Opaque
+stringData:
+  postgres-url: "postgres://agentflow:password@postgres:5432/agentflow?sslmode=disable"
+  postgres-password: "password"
+  openai-api-key: "your-openai-api-key-here"
+  anthropic-api-key: "your-anthropic-api-key-here"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentflow-config
+  namespace: agentflow
+data:
+  orchestrator-config.yaml: |
+    port: 8080
+    nats_url: "nats://nats:4222"
+    postgres_url: "postgres://agentflow:password@postgres:5432/agentflow?sslmode=disable"
+    clickhouse_url: "tcp://clickhouse:9000"
+    tracing_url: "http://jaeger:14268/api/traces"
+  
+  llm-router-config.yaml: |
+    port: 8082
+    nats_url: "nats://nats:4222"
+    providers:
+      openai:
+        base_url: "https://api.openai.com/v1"
+        cost_per_1k: 0.002
+        rate_limit: 100
+      anthropic:
+        base_url: "https://api.anthropic.com"
+        cost_per_1k: 0.008
+        rate_limit: 50

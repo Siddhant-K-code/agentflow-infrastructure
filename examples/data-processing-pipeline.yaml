@@ -1,0 +1,75 @@
+apiVersion: agentflow.io/v1
+kind: Workflow
+metadata:
+  name: data-processing-pipeline
+  labels:
+    environment: production
+    team: data-science
+spec:
+  agents:
+    - name: data-collector
+      image: agentflow/data-collector:v1.0.0
+      llm:
+        provider: openai
+        model: gpt-4
+        config:
+          temperature: "0.1"
+          max_tokens: "1000"
+      resources:
+        memory: 512Mi
+        cpu: 100m
+      env:
+        DATA_SOURCE_URL: "https://api.example.com/data"
+        OUTPUT_FORMAT: "json"
+      timeout: "5m"
+      retries: 3
+
+    - name: data-processor
+      image: agentflow/data-processor:v1.0.0
+      llm:
+        provider: anthropic
+        model: claude-3-sonnet
+        config:
+          temperature: "0.2"
+      dependsOn: [data-collector]
+      resources:
+        memory: 1Gi
+        cpu: 200m
+      env:
+        PROCESSING_MODE: "batch"
+        QUALITY_THRESHOLD: "0.95"
+      timeout: "10m"
+      retries: 2
+
+    - name: data-publisher
+      image: agentflow/data-publisher:v1.0.0
+      llm:
+        provider: openai
+        model: gpt-3.5-turbo
+        config:
+          temperature: "0.0"
+      dependsOn: [data-processor]
+      resources:
+        memory: 256Mi
+        cpu: 50m
+      env:
+        PUBLISH_ENDPOINT: "https://api.target.com/publish"
+        NOTIFICATION_WEBHOOK: "https://hooks.slack.com/services/..."
+      timeout: "3m"
+      retries: 1
+
+  triggers:
+    - schedule: "0 */6 * * *"  # Every 6 hours
+    - webhook: "/api/v1/trigger/data-pipeline"
+    - event: "data.source.updated"
+
+  config:
+    parallelism: 2
+    timeout: "30m"
+    retryPolicy: "exponential"
+    notifications:
+      slack:
+        webhook: "https://hooks.slack.com/services/..."
+        channel: "#data-alerts"
+      email:
+        recipients: ["team@company.com"]
