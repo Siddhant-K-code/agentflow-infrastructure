@@ -1,0 +1,142 @@
+name: customer_support_pipeline
+version: 1
+description: Advanced customer support pipeline with escalation and sentiment analysis
+
+nodes:
+  - id: receive_ticket
+    type: tool
+    config:
+      tool: "support.receive_ticket"
+    inputs:
+      ticket_data:
+        from: "input.ticket"
+        
+  - id: extract_info
+    type: llm
+    config:
+      prompt: "ticket_info_extraction@2"
+      provider: "openai"
+      model: "gpt-4"
+    inputs:
+      ticket_content:
+        from: "receive_ticket.content"
+    policy:
+      quality: Gold
+      sla_ms: 3000
+    retries:
+      max_attempts: 2
+      backoff: "1s"
+      
+  - id: sentiment_analysis
+    type: llm
+    config:
+      prompt: "sentiment_classifier@1"
+      provider: "anthropic"
+      model: "claude-3-sonnet"
+    inputs:
+      text:
+        from: "receive_ticket.content"
+    policy:
+      quality: Silver
+      sla_ms: 2000
+      
+  - id: priority_assessment
+    type: function
+    config:
+      function: "priority_calculator.v1"
+    inputs:
+      info:
+        from: "extract_info.output"
+      sentiment:
+        from: "sentiment_analysis.output"
+        
+  - id: route_ticket
+    type: switch
+    config:
+      switch_on: "priority_assessment.priority"
+      cases:
+        - condition: "urgent"
+          action:
+            type: subdag
+            workflow: "urgent_escalation@1"
+        - condition: "high"
+          action:
+            type: subdag  
+            workflow: "specialist_routing@2"
+        - condition: "medium"
+          action:
+            type: subdag
+            workflow: "standard_response@1"
+        - condition: "low"
+          action:
+            type: subdag
+            workflow: "automated_response@1"
+            
+  - id: generate_response
+    type: llm
+    config:
+      prompt: "support_response@3"
+      provider: "openai"
+      model: "gpt-3.5-turbo"
+    inputs:
+      ticket_info:
+        from: "extract_info.output"
+      priority:
+        from: "priority_assessment.priority"
+      context:
+        from: "route_ticket.context"
+    policy:
+      quality: Silver
+      sla_ms: 5000
+      optional: false
+      
+  - id: quality_check
+    type: function
+    config:
+      function: "response_validator.v1"
+    inputs:
+      response:
+        from: "generate_response.output"
+      original_ticket:
+        from: "receive_ticket.content"
+        
+  - id: send_response
+    type: tool
+    config:
+      tool: "support.send_response"
+    inputs:
+      response:
+        from: "generate_response.output"
+      ticket_id:
+        from: "receive_ticket.ticket_id"
+      quality_score:
+        from: "quality_check.score"
+
+edges:
+  - from: receive_ticket
+    to: extract_info
+  - from: receive_ticket
+    to: sentiment_analysis
+  - from: extract_info
+    to: priority_assessment
+  - from: sentiment_analysis
+    to: priority_assessment
+  - from: priority_assessment
+    to: route_ticket
+  - from: route_ticket
+    to: generate_response
+  - from: generate_response
+    to: quality_check
+  - from: quality_check
+    to: send_response
+
+policy:
+  quality: Silver
+  timeout: "10m"
+  budget_cents: 300
+  
+metadata:
+  owner: "support-team"
+  tags: ["customer-support", "nlp", "escalation"]
+  estimated_cost_cents: 150
+  sla_minutes: 5

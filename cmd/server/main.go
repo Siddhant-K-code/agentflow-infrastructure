@@ -8,8 +8,10 @@ import (
 	"os"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/aor"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/cas"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/common"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/pop"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/scl"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -45,6 +47,7 @@ func main() {
 	// Initialize services
 	aorService := aor.NewService(db)
 	popService := pop.NewService(db)
+	sclService := scl.NewService(db)
 
 	// Setup HTTP router
 	if !*debug {
@@ -61,6 +64,7 @@ func main() {
 	// Setup API routes
 	setupAORRoutes(router, aorService)
 	setupPOPRoutes(router, popService)
+	setupSCLRoutes(router, sclService)
 
 	// Start server
 	addr := fmt.Sprintf(":%s", *port)
@@ -81,6 +85,9 @@ func migrateDatabase(db *gorm.DB) error {
 		&pop.PromptTemplate{},
 		&pop.PromptSuite{},
 		&pop.PromptDeployment{},
+		&scl.ContextBundle{},
+		&cas.BudgetConfig{},
+		&cas.ProviderConfig{},
 	)
 }
 
@@ -116,4 +123,13 @@ func setupPOPRoutes(router *gin.Engine, service *pop.Service) {
 	// Deployment
 	v1.POST("/deployments", service.DeployPrompt)
 	v1.GET("/deployments/:name", service.GetDeployment)
+}
+
+func setupSCLRoutes(router *gin.Engine, service *scl.Service) {
+	v1 := router.Group("/api/v1")
+	
+	// Context management
+	v1.POST("/context/ingest", service.IngestContext)
+	v1.POST("/context/prepare", service.PrepareContext)
+	v1.POST("/context/policies/test", service.TestPolicy)
 }

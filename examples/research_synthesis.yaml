@@ -1,0 +1,166 @@
+name: research_synthesis
+version: 1
+description: Research paper synthesis and analysis pipeline
+
+nodes:
+  - id: fetch_papers
+    type: tool
+    config:
+      tool: "research.fetch_papers"
+      max_results: 50
+    inputs:
+      query:
+        from: "input.research_query"
+      filters:
+        from: "input.filters"
+        
+  - id: filter_relevance
+    type: map
+    config:
+      map_over: "fetch_papers.papers"
+      max_parallelism: 10
+    nodes:
+      - id: relevance_score
+        type: llm
+        config:
+          prompt: "relevance_scorer@1"
+          provider: "openai"
+          model: "gpt-3.5-turbo"
+        inputs:
+          paper:
+            from: "item"
+          query:
+            from: "input.research_query"
+        policy:
+          quality: Bronze
+          sla_ms: 2000
+          
+  - id: select_top_papers
+    type: function
+    config:
+      function: "paper_selector.v1"
+      top_k: 20
+      min_score: 0.7
+    inputs:
+      scored_papers:
+        from: "filter_relevance.outputs"
+        
+  - id: extract_key_points
+    type: map
+    config:
+      map_over: "select_top_papers.selected"
+      max_parallelism: 5
+    nodes:
+      - id: extract_points
+        type: llm
+        config:
+          prompt: "key_point_extractor@2"
+          provider: "anthropic"
+          model: "claude-3-haiku"
+        inputs:
+          paper:
+            from: "item"
+        policy:
+          quality: Silver
+          sla_ms: 10000
+          
+  - id: cluster_themes
+    type: function
+    config:
+      function: "theme_clusterer.v1"
+      method: "embedding"
+      num_clusters: 5
+    inputs:
+      key_points:
+        from: "extract_key_points.outputs"
+        
+  - id: synthesize_findings
+    type: llm
+    config:
+      prompt: "research_synthesizer@3"
+      provider: "openai"
+      model: "gpt-4"
+    inputs:
+      clustered_themes:
+        from: "cluster_themes.output"
+      original_query:
+        from: "input.research_query"
+    policy:
+      quality: Gold
+      sla_ms: 30000
+      
+  - id: generate_citations
+    type: function
+    config:
+      function: "citation_generator.v1"
+      style: "apa"
+    inputs:
+      papers:
+        from: "select_top_papers.selected"
+      synthesis:
+        from: "synthesize_findings.output"
+        
+  - id: quality_review
+    type: llm
+    config:
+      prompt: "research_reviewer@1"
+      provider: "anthropic"
+      model: "claude-3-sonnet"
+    inputs:
+      synthesis:
+        from: "synthesize_findings.output"
+      citations:
+        from: "generate_citations.output"
+    policy:
+      quality: Gold
+      sla_ms: 15000
+      
+  - id: format_output
+    type: function
+    config:
+      function: "document_formatter.v1"
+      format: "markdown"
+    inputs:
+      synthesis:
+        from: "synthesize_findings.output"
+      citations:
+        from: "generate_citations.output"
+      review:
+        from: "quality_review.output"
+
+edges:
+  - from: fetch_papers
+    to: filter_relevance
+  - from: filter_relevance
+    to: select_top_papers
+  - from: select_top_papers
+    to: extract_key_points
+  - from: extract_key_points
+    to: cluster_themes
+  - from: cluster_themes
+    to: synthesize_findings
+  - from: select_top_papers
+    to: generate_citations
+  - from: synthesize_findings
+    to: generate_citations
+  - from: synthesize_findings
+    to: quality_review
+  - from: generate_citations
+    to: quality_review
+  - from: synthesize_findings
+    to: format_output
+  - from: generate_citations
+    to: format_output
+  - from: quality_review
+    to: format_output
+
+policy:
+  quality: Gold
+  timeout: "20m"
+  budget_cents: 800
+  
+metadata:
+  owner: "research-team"
+  tags: ["research", "synthesis", "academic"]
+  estimated_cost_cents: 400
+  estimated_duration_minutes: 15
