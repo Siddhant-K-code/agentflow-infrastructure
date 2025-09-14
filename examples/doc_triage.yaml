@@ -1,0 +1,70 @@
+name: doc_triage
+version: 1
+description: Document triage workflow that classifies and routes documents
+
+nodes:
+  - id: ingest
+    type: tool
+    config:
+      tool: "s3.fetch"
+      bucket: "documents"
+    inputs:
+      key: 
+        from: "input.document_key"
+    
+  - id: chunk
+    type: function
+    config:
+      function: "chunker.v1"
+      chunk_size: 1000
+      overlap: 100
+    inputs:
+      content:
+        from: "ingest.output"
+        
+  - id: classify
+    type: llm
+    config:
+      prompt: "doc_triage@3"
+      provider: "openai"
+      model: "gpt-3.5-turbo"
+    inputs:
+      context:
+        from: "chunk.output"
+    policy:
+      quality: Bronze
+      sla_ms: 1500
+      max_tokens: 500
+    retries:
+      max_attempts: 3
+      backoff: "2s"
+      
+  - id: route
+    type: switch
+    config:
+      switch_on: "classify.label"
+      cases:
+        - condition: "security"
+          action:
+            type: subdag
+            workflow: "security_review@1"
+        - condition: "finance" 
+          action:
+            type: subdag
+            workflow: "finance_review@1"
+        - condition: "other"
+          action:
+            type: end
+
+edges:
+  - from: ingest
+    to: chunk
+  - from: chunk  
+    to: classify
+  - from: classify
+    to: route
+
+metadata:
+  owner: "doc-team"
+  tags: ["document", "triage", "classification"]
+  estimated_cost_cents: 50

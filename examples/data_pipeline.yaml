@@ -1,0 +1,62 @@
+name: data_pipeline
+version: 1
+description: ETL pipeline with map-reduce pattern
+
+nodes:
+  - id: fetch_sources
+    type: tool
+    config:
+      tool: "data.fetch_multiple"
+    inputs:
+      sources:
+        from: "input.data_sources"
+        
+  - id: transform_data
+    type: map
+    config:
+      map_over: "fetch_sources.outputs"
+      max_parallelism: 10
+    nodes:
+      - id: validate
+        type: function
+        config:
+          function: "validator.v2"
+      - id: transform
+        type: function
+        config:
+          function: "transformer.v1"
+        inputs:
+          data:
+            from: "validate.output"
+    
+  - id: aggregate
+    type: reduce
+    config:
+      reduce_from: "transform_data.outputs"
+      function: "aggregator.v1"
+    
+  - id: store_results
+    type: tool
+    config:
+      tool: "storage.write"
+      destination: "processed_data"
+    inputs:
+      data:
+        from: "aggregate.output"
+
+edges:
+  - from: fetch_sources
+    to: transform_data
+  - from: transform_data
+    to: aggregate  
+  - from: aggregate
+    to: store_results
+
+policy:
+  quality: Silver
+  timeout: "30m"
+  
+metadata:
+  owner: "data-team"
+  tags: ["etl", "pipeline", "batch"]
+  estimated_cost_cents: 200
