@@ -1,0 +1,209 @@
+version: '3.8'
+
+services:
+  # PostgreSQL for metadata storage
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: agentflow
+      POSTGRES_USER: agentflow
+      POSTGRES_PASSWORD: agentflow_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ClickHouse for observability data
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8-alpine
+    environment:
+      CLICKHOUSE_DB: agentflow
+      CLICKHOUSE_USER: agentflow
+      CLICKHOUSE_PASSWORD: agentflow_password
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse:/docker-entrypoint-initdb.d
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and queues
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass agentflow_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NATS for messaging
+  nats:
+    image: nats:2.10-alpine
+    command: [
+      "--jetstream",
+      "--store_dir=/data",
+      "--max_memory_store=1GB",
+      "--max_file_store=10GB"
+    ]
+    volumes:
+      - nats_data:/data
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # AgentFlow Control Plane
+  control-plane:
+    build:
+      context: .
+      dockerfile: Dockerfile.control-plane
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=agentflow
+      - DB_PASSWORD=agentflow_password
+      - DB_NAME=agentflow
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_USER=agentflow
+      - CLICKHOUSE_PASSWORD=agentflow_password
+      - CLICKHOUSE_DB=agentflow
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=agentflow_password
+      - NATS_URL=nats://nats:4222
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # AgentFlow Workers
+  worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=agentflow
+      - DB_PASSWORD=agentflow_password
+      - DB_NAME=agentflow
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_USER=agentflow
+      - CLICKHOUSE_PASSWORD=agentflow_password
+      - CLICKHOUSE_DB=agentflow
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=agentflow_password
+      - NATS_URL=nats://nats:4222
+      - WORKER_ID=worker-1
+    depends_on:
+      control-plane:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=agentflow
+      - DB_PASSWORD=agentflow_password
+      - DB_NAME=agentflow
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_USER=agentflow
+      - CLICKHOUSE_PASSWORD=agentflow_password
+      - CLICKHOUSE_DB=agentflow
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=agentflow_password
+      - NATS_URL=nats://nats:4222
+      - WORKER_ID=worker-2
+    depends_on:
+      control-plane:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.1.0
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  clickhouse_data:
+  redis_data:
+  nats_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: agentflow
+    driver: bridge

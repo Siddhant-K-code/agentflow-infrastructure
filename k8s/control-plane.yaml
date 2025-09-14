@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentflow-config
+  namespace: agentflow
+data:
+  config.yaml: |
+    database:
+      host: postgres
+      port: 5432
+      user: agentflow
+      database: agentflow
+      ssl_mode: disable
+    clickhouse:
+      host: clickhouse
+      port: 9000
+      user: agentflow
+      database: agentflow
+    redis:
+      host: redis
+      port: 6379
+      db: 0
+    nats:
+      url: nats://nats:4222
+    server:
+      host: 0.0.0.0
+      port: 8080
+    storage:
+      type: local
+      bucket: agentflow-artifacts
+    auth:
+      jwt_secret: your-secret-key
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: control-plane
+  namespace: agentflow
+  labels:
+    app: control-plane
+    component: agentflow
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: control-plane
+  template:
+    metadata:
+      labels:
+        app: control-plane
+        component: agentflow
+    spec:
+      containers:
+      - name: control-plane
+        image: agentflow/control-plane:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-secret
+              key: password
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        volumeMounts:
+        - name: config
+          mountPath: /app/configs/config.yaml
+          subPath: config.yaml
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: config
+        configMap:
+          name: agentflow-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: control-plane
+  namespace: agentflow
+  labels:
+    app: control-plane
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    app: control-plane
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agentflow-ingress
+  namespace: agentflow
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+  - hosts:
+    - api.agentflow.example.com
+    secretName: agentflow-tls
+  rules:
+  - host: api.agentflow.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: control-plane
+            port:
+              number: 8080

@@ -1,0 +1,56 @@
+# Multi-stage build for AgentFlow Control Plane
+FROM golang:1.21-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the control plane binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o control-plane ./cmd/control-plane
+
+# Final stage
+FROM alpine:3.18
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata
+
+# Create non-root user
+RUN addgroup -g 1001 agentflow && \
+    adduser -D -s /bin/sh -u 1001 -G agentflow agentflow
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/control-plane .
+
+# Copy migrations
+COPY --from=builder /app/migrations ./migrations
+
+# Create directories for configs and data
+RUN mkdir -p /app/configs /app/data && \
+    chown -R agentflow:agentflow /app
+
+# Switch to non-root user
+USER agentflow
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["./control-plane"]

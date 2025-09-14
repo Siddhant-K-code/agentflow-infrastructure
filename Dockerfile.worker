@@ -1,0 +1,54 @@
+# Multi-stage build for AgentFlow Worker
+FROM golang:1.21-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the worker binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker ./cmd/worker
+
+# Final stage
+FROM alpine:3.18
+
+# Install runtime dependencies and tools for WASI/containers
+RUN apk --no-cache add ca-certificates tzdata curl wget
+
+# Install wasmtime for WASI support
+RUN curl -sSf https://wasmtime.dev/install.sh | bash
+ENV PATH="/root/.wasmtime/bin:${PATH}"
+
+# Create non-root user
+RUN addgroup -g 1001 agentflow && \
+    adduser -D -s /bin/sh -u 1001 -G agentflow agentflow
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/worker .
+
+# Create directories for configs, data, and function execution
+RUN mkdir -p /app/configs /app/data /app/functions /app/tmp && \
+    chown -R agentflow:agentflow /app
+
+# Switch to non-root user
+USER agentflow
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD pgrep -f worker || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["./worker"]
