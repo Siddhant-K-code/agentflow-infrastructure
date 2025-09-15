@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentFlow Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .status.succeeded { background: #d4edda; color: #155724; }
+        .status.running { background: #d1ecf1; color: #0c5460; }
+        .status.failed { background: #f8d7da; color: #721c24; }
+        .status.queued { background: #fff3cd; color: #856404; }
+        .refresh-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .refresh-btn:hover {
+            background: #0056b3;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AgentFlow Dashboard</h1>
+        <p>Multi-Agent Orchestration Platform</p>
+    </div>
+
+    <div class="stats" id="stats">
+        <!-- Stats will be loaded dynamically -->
+    </div>
+
+    <div class="section">
+        <h2>Recent Workflow Runs <button class="refresh-btn" onclick="loadRuns()">Refresh</button></h2>
+        <div id="runs-content">Loading...</div>
+    </div>
+
+    <div class="section">
+        <h2>Workflows <button class="refresh-btn" onclick="loadWorkflows()">Refresh</button></h2>
+        <div id="workflows-content">Loading...</div>
+    </div>
+
+    <div class="section">
+        <h2>System Status</h2>
+        <div id="status-content">Loading...</div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1';
+
+        async function apiCall(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+
+        function formatCurrency(cents) {
+            return `$${(cents / 100).toFixed(2)}`;
+        }
+
+        async function loadStats() {
+            try {
+                const [workflows, runs] = await Promise.all([
+                    apiCall(`${API_BASE}/workflows`),
+                    apiCall(`${API_BASE}/runs`)
+                ]);
+
+                const runningRuns = runs.filter(r => r.status === 'running').length;
+                const totalCost = runs.reduce((sum, r) => sum + (r.cost_cents || 0), 0);
+
+                const statsHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${workflows.length}</div>
+                        <div class="stat-label">Workflows</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${runs.length}</div>
+                        <div class="stat-label">Total Runs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${runningRuns}</div>
+                        <div class="stat-label">Running</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${formatCurrency(totalCost)}</div>
+                        <div class="stat-label">Total Cost</div>
+                    </div>
+                `;
+                document.getElementById('stats').innerHTML = statsHTML;
+            } catch (error) {
+                document.getElementById('stats').innerHTML = `<div class="error">Failed to load stats: ${error.message}</div>`;
+            }
+        }
+
+        async function loadRuns() {
+            try {
+                const runs = await apiCall(`${API_BASE}/runs`);
+                
+                if (runs.length === 0) {
+                    document.getElementById('runs-content').innerHTML = '<p>No runs found</p>';
+                    return;
+                }
+
+                const runsHTML = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th>Started</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${runs.map(run => `
+                                <tr>
+                                    <td>${run.id.substring(0, 8)}...</td>
+                                    <td><span class="status ${run.status}">${run.status}</span></td>
+                                    <td>${formatDate(run.started_at)}</td>
+                                    <td>${formatCurrency(run.cost_cents || 0)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('runs-content').innerHTML = runsHTML;
+            } catch (error) {
+                document.getElementById('runs-content').innerHTML = `<div class="error">Failed to load runs: ${error.message}</div>`;
+            }
+        }
+
+        async function loadWorkflows() {
+            try {
+                const workflows = await apiCall(`${API_BASE}/workflows`);
+                
+                if (workflows.length === 0) {
+                    document.getElementById('workflows-content').innerHTML = '<p>No workflows found</p>';
+                    return;
+                }
+
+                const workflowsHTML = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Version</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${workflows.map(workflow => `
+                                <tr>
+                                    <td><strong>${workflow.name}</strong></td>
+                                    <td>v${workflow.version}</td>
+                                    <td>${formatDate(workflow.created_at)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('workflows-content').innerHTML = workflowsHTML;
+            } catch (error) {
+                document.getElementById('workflows-content').innerHTML = `<div class="error">Failed to load workflows: ${error.message}</div>`;
+            }
+        }
+
+        async function loadSystemStatus() {
+            try {
+                const status = await apiCall('/health');
+                
+                const statusHTML = `
+                    <table class="table">
+                        <tr>
+                            <td><strong>Overall Status</strong></td>
+                            <td><span class="status ${status.status === 'ok' ? 'succeeded' : 'failed'}">${status.status}</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Database</strong></td>
+                            <td><span class="status ${status.database === 'ok' ? 'succeeded' : 'failed'}">${status.database}</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Queue</strong></td>
+                            <td><span class="status ${status.queue === 'ok' ? 'succeeded' : 'failed'}">${status.queue}</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Active Workers</strong></td>
+                            <td>${status.workers || 0}</td>
+                        </tr>
+                    </table>
+                `;
+                document.getElementById('status-content').innerHTML = statusHTML;
+            } catch (error) {
+                document.getElementById('status-content').innerHTML = `<div class="error">Failed to load system status: ${error.message}</div>`;
+            }
+        }
+
+        // Load all data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadRuns();
+            loadWorkflows();
+            loadSystemStatus();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                loadStats();
+                loadRuns();
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

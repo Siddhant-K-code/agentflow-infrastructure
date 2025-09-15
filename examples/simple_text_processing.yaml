@@ -1,0 +1,85 @@
+name: simple_text_processing
+version: 1
+description: Simple text processing workflow for POC demonstration
+
+nodes:
+  - id: validate_input
+    type: function
+    config:
+      function: "text_validator"
+    inputs:
+      text:
+        from: "input.text"
+    policy:
+      timeout_ms: 5000
+      
+  - id: analyze_sentiment
+    type: llm
+    config:
+      prompt: "Analyze the sentiment of the following text and return only 'positive', 'negative', or 'neutral':"
+      provider: "openai"
+      model: "gpt-3.5-turbo"
+      max_tokens: 10
+    inputs:
+      text:
+        from: "validate_input.output.clean_text"
+    policy:
+      quality: Bronze
+      sla_ms: 3000
+      max_tokens: 50
+    retries:
+      max_attempts: 2
+      backoff: "1s"
+      
+  - id: extract_keywords
+    type: llm
+    config:
+      prompt: "Extract 3-5 important keywords from this text, return as comma-separated values:"
+      provider: "openai"
+      model: "gpt-3.5-turbo"
+      max_tokens: 50
+    inputs:
+      text:
+        from: "validate_input.output.clean_text"
+    policy:
+      quality: Bronze
+      sla_ms: 3000
+      max_tokens: 100
+    retries:
+      max_attempts: 2
+      backoff: "1s"
+      
+  - id: generate_summary
+    type: llm
+    config:
+      prompt: "Create a brief 2-sentence summary of this text:"
+      provider: "openai"
+      model: "gpt-3.5-turbo"
+      max_tokens: 100
+    inputs:
+      text:
+        from: "validate_input.output.clean_text"
+      sentiment:
+        from: "analyze_sentiment.output.text"
+    policy:
+      quality: Silver
+      sla_ms: 5000
+      max_tokens: 150
+    retries:
+      max_attempts: 3
+      backoff: "2s"
+
+edges:
+  - from: validate_input
+    to: analyze_sentiment
+  - from: validate_input
+    to: extract_keywords
+  - from: analyze_sentiment
+    to: generate_summary
+  - from: extract_keywords
+    to: generate_summary
+
+metadata:
+  owner: "poc-team"
+  tags: ["text", "nlp", "sentiment", "demo"]
+  estimated_cost_cents: 25

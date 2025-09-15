@@ -25,10 +25,12 @@ build-worker:
 	$(GOBUILD) -o bin/$(BINARY_NAME_WORKER) -v ./cmd/worker
 
 # Development
-dev:
-	@echo "Running in development mode..."
+dev: build-server
+	@echo "Starting AgentFlow server with web dashboard..."
+	@echo "🌐 Web Dashboard: http://localhost:8080"
+	@echo "📡 API Endpoint: http://localhost:8080/api/v1"
 	@export DATABASE_URL="postgres://postgres:password@localhost:5432/agentflow?sslmode=disable" && \
-	go run cmd/server/main.go -debug
+	./bin/$(BINARY_NAME_SERVER) -debug
 
 run: build-server
 	./bin/$(BINARY_NAME_SERVER)
@@ -101,13 +103,23 @@ stop-deps:
 	docker-compose -f deployments/docker-compose.dev.yml down
 
 # Full development setup
-setup: deps db-setup start-deps
-	@echo "Development environment ready!"
+setup: deps start-deps
+	@echo "Running setup script..."
+	./scripts/setup-dev.sh
 
 # Examples
-example-workflow:
-	$(MAKE) build-cli
+example-workflow: build-cli
+	@echo "🚀 Submitting example workflow..."
 	./bin/$(BINARY_NAME_CLI) workflow submit examples/doc_triage.yaml
+
+demo: build
+	@echo "🎬 Running AgentFlow demo..."
+	@echo "1. Starting a workflow run..."
+	./bin/$(BINARY_NAME_CLI) run start --workflow doc_triage --budget 1000
+	@echo "2. Checking system status..."
+	./bin/$(BINARY_NAME_CLI) status
+	@echo "3. Listing recent runs..."
+	./bin/$(BINARY_NAME_CLI) run list
 
 # Help
 help:

@@ -56,9 +56,33 @@ func main() {
 	
 	router := gin.Default()
 	
+	// Serve static files for web dashboard
+	router.Static("/static", "./web/static")
+	router.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/static/index.html")
+	})
+	
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		// Check database connection
+		sqlDB, err := db.DB()
+		dbStatus := "ok"
+		if err != nil || sqlDB.Ping() != nil {
+			dbStatus = "error"
+		}
+
+		status := gin.H{
+			"status":   "ok",
+			"database": dbStatus,
+			"queue":    "ok", // TODO: Check NATS connection
+			"workers":  0,    // TODO: Count active workers
+		}
+
+		if dbStatus == "error" {
+			status["status"] = "degraded"
+		}
+
+		c.JSON(http.StatusOK, status)
 	})
 
 	// Setup API routes
@@ -97,10 +121,13 @@ func setupAORRoutes(router *gin.Engine, service *aor.Service) {
 	// Workflow management
 	v1.POST("/workflows/:name/versions", service.CreateWorkflowSpec)
 	v1.GET("/workflows/:name/versions/:version", service.GetWorkflowSpec)
+	v1.GET("/workflows/:name", service.GetLatestWorkflowSpec)
+	v1.GET("/workflows", service.ListWorkflows)
 	
 	// Run management
 	v1.POST("/runs", service.CreateRun)
 	v1.GET("/runs/:id", service.GetRun)
+	v1.GET("/runs", service.ListRuns)
 	v1.POST("/runs/:id/cancel", service.CancelRun)
 	v1.POST("/signals/:run_id", service.SendSignal)
 	
