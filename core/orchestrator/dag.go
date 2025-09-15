@@ -3,364 +3,277 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// DAGExecutor manages the execution of workflow DAGs
+// DAGExecutor manages directed acyclic graph execution of workflows
 type DAGExecutor struct {
-	config     *Config
-	executions map[string]*WorkflowExecution
-	mutex      sync.RWMutex
+	config *Config
 }
 
 func NewDAGExecutor(config *Config) (*DAGExecutor, error) {
 	return &DAGExecutor{
-		config:     config,
-		executions: make(map[string]*WorkflowExecution),
+		config: config,
 	}, nil
 }
 
-func (d *DAGExecutor) Shutdown() {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	
-	for _, execution := range d.executions {
-		execution.Cancel()
-	}
+func (de *DAGExecutor) Shutdown() {
+	// TODO: Implement graceful shutdown
 }
 
-// WorkflowExecution represents a running workflow
-type WorkflowExecution struct {
-	ID        string
-	Name      string
-	Status    WorkflowStatus
-	Agents    []*AgentExecution
-	StartTime time.Time
-	EndTime   *time.Time
-	Context   context.Context
-	Cancel    context.CancelFunc
-	mutex     sync.RWMutex
-}
-
-// AgentExecution represents a running agent within a workflow
-type AgentExecution struct {
-	ID        string
-	Name      string
-	Status    AgentStatus
-	LLMConfig LLMConfig
-	StartTime time.Time
-	EndTime   *time.Time
-	Retries   int
-	MaxRetries int
-	Error     error
-	mutex     sync.RWMutex
-}
-
-type WorkflowStatus string
-
-const (
-	WorkflowStatusPending   WorkflowStatus = "pending"
-	WorkflowStatusRunning   WorkflowStatus = "running"
-	WorkflowStatusCompleted WorkflowStatus = "completed"
-	WorkflowStatusFailed    WorkflowStatus = "failed"
-	WorkflowStatusCancelled WorkflowStatus = "cancelled"
-)
-
-type AgentStatus string
-
-const (
-	AgentStatusPending   AgentStatus = "pending"
-	AgentStatusRunning   AgentStatus = "running"
-	AgentStatusCompleted AgentStatus = "completed"
-	AgentStatusFailed    AgentStatus = "failed"
-	AgentStatusRetrying  AgentStatus = "retrying"
-)
-
-type LLMConfig struct {
-	Provider string
-	Model    string
-	Config   map[string]string
-}
-
-// ExecuteWorkflow starts a new workflow execution
-func (d *DAGExecutor) ExecuteWorkflow(workflow *Workflow) (*WorkflowExecution, error) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	
-	ctx, cancel := context.WithCancel(context.Background())
+// ExecuteWorkflow starts execution of a workflow
+func (de *DAGExecutor) ExecuteWorkflow(workflow *Workflow) (*WorkflowExecution, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	
 	execution := &WorkflowExecution{
 		ID:        uuid.New().String(),
-		Name:      workflow.Metadata.Name,
-		Status:    WorkflowStatusPending,
+		Status:    "running",
+		Agents:    make([]AgentExecution, 0),
 		StartTime: time.Now(),
-		Context:   ctx,
-		Cancel:    cancel,
+		Workflow:  workflow,
+		ctx:       ctx,
+		cancel:    cancel,
 	}
-	
-	// Convert workflow agents to agent executions
-	for _, agent := range workflow.Spec.Agents {
-		agentExec := &AgentExecution{
-			ID:         uuid.New().String(),
-			Name:       agent.Name,
-			Status:     AgentStatusPending,
-			LLMConfig:  agent.LLM,
-			MaxRetries: agent.Retries,
-		}
-		if agentExec.MaxRetries == 0 {
-			agentExec.MaxRetries = 3 // Default retries
-		}
-		execution.Agents = append(execution.Agents, agentExec)
-	}
-	
-	d.executions[execution.ID] = execution
-	
+
 	// Start execution in background
-	go d.runWorkflow(execution, workflow)
-	
+	go de.executeWorkflowAsync(execution)
+
 	return execution, nil
 }
 
-// runWorkflow executes the workflow DAG
-func (d *DAGExecutor) runWorkflow(execution *WorkflowExecution, workflow *Workflow) {
-	execution.mutex.Lock()
-	execution.Status = WorkflowStatusRunning
-	execution.mutex.Unlock()
+func (de *DAGExecutor) executeWorkflowAsync(execution *WorkflowExecution) {
+	defer execution.cancel()
+
+	log.Printf("🚀 Starting workflow execution: %s", execution.ID)
+
+	// Build dependency graph
+	graph := buildDependencyGraph(execution.Workflow.Spec.Agents)
 	
-	defer func() {
+	// Execute agents in dependency order
+	if err := de.executeDependencyGraph(execution, graph); err != nil {
+		log.Printf("❌ Workflow %s failed: %v", execution.ID, err)
 		execution.mutex.Lock()
-		if execution.Status == WorkflowStatusRunning {
-			execution.Status = WorkflowStatusCompleted
-		}
+		execution.Status = "failed"
+		execution.Error = err.Error()
 		now := time.Now()
 		execution.EndTime = &now
 		execution.mutex.Unlock()
-	}()
-	
-	// Build dependency graph
-	depGraph := d.buildDependencyGraph(workflow.Spec.Agents)
-	
-	// Execute agents based on dependency order
-	for level := range depGraph {
-		agents := depGraph[level]
-		
-		// Execute agents in this level concurrently
-		var wg sync.WaitGroup
-		for _, agentName := range agents {
-			wg.Add(1)
-			go func(name string) {
-				defer wg.Done()
-				
-				agent := d.findAgentExecution(execution, name)
-				if agent != nil {
-					d.executeAgent(execution.Context, agent)
-				}
-			}(agentName)
-		}
-		
-		wg.Wait()
-		
-		// Check if any agent failed and we should stop
-		if d.shouldStopExecution(execution) {
-			execution.mutex.Lock()
-			execution.Status = WorkflowStatusFailed
-			execution.mutex.Unlock()
-			return
-		}
-		
-		// Check if context was cancelled
-		select {
-		case <-execution.Context.Done():
-			execution.mutex.Lock()
-			execution.Status = WorkflowStatusCancelled
-			execution.mutex.Unlock()
-			return
-		default:
-		}
-	}
-}
-
-// buildDependencyGraph creates a levelized dependency graph
-func (d *DAGExecutor) buildDependencyGraph(agents []Agent) map[int][]string {
-	// Simple implementation - more sophisticated topological sort needed for production
-	graph := make(map[int][]string)
-	
-	// For now, put agents with no dependencies at level 0
-	// and agents with dependencies at level 1
-	level0 := []string{}
-	level1 := []string{}
-	
-	for _, agent := range agents {
-		if len(agent.DependsOn) == 0 {
-			level0 = append(level0, agent.Name)
-		} else {
-			level1 = append(level1, agent.Name)
-		}
-	}
-	
-	if len(level0) > 0 {
-		graph[0] = level0
-	}
-	if len(level1) > 0 {
-		graph[1] = level1
-	}
-	
-	return graph
-}
-
-// executeAgent runs a single agent
-func (d *DAGExecutor) executeAgent(ctx context.Context, agent *AgentExecution) {
-	agent.mutex.Lock()
-	agent.Status = AgentStatusRunning
-	agent.StartTime = time.Now()
-	agent.mutex.Unlock()
-	
-	defer func() {
-		agent.mutex.Lock()
-		if agent.Status == AgentStatusRunning {
-			agent.Status = AgentStatusCompleted
-		}
-		now := time.Now()
-		agent.EndTime = &now
-		agent.mutex.Unlock()
-	}()
-	
-	// Retry loop
-	for attempt := 0; attempt <= agent.MaxRetries; attempt++ {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		
-		if attempt > 0 {
-			agent.mutex.Lock()
-			agent.Status = AgentStatusRetrying
-			agent.Retries = attempt
-			agent.mutex.Unlock()
-			
-			// Exponential backoff
-			backoff := time.Duration(attempt) * time.Second
-			time.Sleep(backoff)
-		}
-		
-		// Simulate agent execution
-		if err := d.runAgentTask(ctx, agent); err != nil {
-			agent.mutex.Lock()
-			agent.Error = err
-			agent.mutex.Unlock()
-			
-			if attempt == agent.MaxRetries {
-				agent.mutex.Lock()
-				agent.Status = AgentStatusFailed
-				agent.mutex.Unlock()
-				return
-			}
-			continue
-		}
-		
-		// Success
 		return
 	}
+
+	log.Printf("✅ Workflow %s completed successfully", execution.ID)
+	execution.mutex.Lock()
+	execution.Status = "completed"
+	now := time.Now()
+	execution.EndTime = &now
+	execution.mutex.Unlock()
 }
 
-// runAgentTask simulates running an agent task
-func (d *DAGExecutor) runAgentTask(ctx context.Context, agent *AgentExecution) error {
-	// TODO: Integrate with Rust runtime and LLM router
-	
-	// Simulate work
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(time.Duration(2+agent.Retries) * time.Second):
-		// Simulate occasional failures
-		if agent.Retries == 0 && agent.Name == "data-processor" {
-			return fmt.Errorf("simulated LLM timeout")
-		}
-		return nil
-	}
-}
+func (de *DAGExecutor) executeDependencyGraph(execution *WorkflowExecution, graph *DependencyGraph) error {
+	completed := make(map[string]bool)
+	outputs := make(map[string]map[string]interface{})
 
-func (d *DAGExecutor) findAgentExecution(execution *WorkflowExecution, name string) *AgentExecution {
-	for _, agent := range execution.Agents {
-		if agent.Name == name {
-			return agent
+	for len(completed) < len(graph.Nodes) {
+		// Find nodes ready to execute (all dependencies completed)
+		ready := make([]*GraphNode, 0)
+		for _, node := range graph.Nodes {
+			if completed[node.Agent.Name] {
+				continue
+			}
+			
+			allDepsCompleted := true
+			for _, dep := range node.Dependencies {
+				if !completed[dep] {
+					allDepsCompleted = false
+					break
+				}
+			}
+			
+			if allDepsCompleted {
+				ready = append(ready, node)
+			}
+		}
+
+		if len(ready) == 0 {
+			return fmt.Errorf("circular dependency detected or no ready nodes")
+		}
+
+		// Execute ready nodes in parallel
+		var wg sync.WaitGroup
+		errorChan := make(chan error, len(ready))
+
+		for _, node := range ready {
+			wg.Add(1)
+			go func(n *GraphNode) {
+				defer wg.Done()
+				
+				// Collect input from dependencies
+				input := make(map[string]interface{})
+				for _, dep := range n.Dependencies {
+					if output, exists := outputs[dep]; exists {
+						input[dep] = output
+					}
+				}
+
+				// Execute agent
+				output, err := de.executeAgent(execution, n.Agent, input)
+				if err != nil {
+					errorChan <- fmt.Errorf("agent %s failed: %w", n.Agent.Name, err)
+					return
+				}
+
+				outputs[n.Agent.Name] = output
+				completed[n.Agent.Name] = true
+			}(node)
+		}
+
+		wg.Wait()
+		close(errorChan)
+
+		// Check for errors
+		for err := range errorChan {
+			return err
 		}
 	}
+
 	return nil
 }
 
-func (d *DAGExecutor) shouldStopExecution(execution *WorkflowExecution) bool {
-	for _, agent := range execution.Agents {
-		agent.mutex.RLock()
-		status := agent.Status
-		agent.mutex.RUnlock()
-		
-		if status == AgentStatusFailed {
-			return true
-		}
+func (de *DAGExecutor) executeAgent(execution *WorkflowExecution, agent Agent, input map[string]interface{}) (map[string]interface{}, error) {
+	log.Printf("🤖 Executing agent: %s", agent.Name)
+
+	agentExec := AgentExecution{
+		Name:      agent.Name,
+		Status:    "running",
+		StartTime: time.Now(),
 	}
-	return false
+
+	execution.mutex.Lock()
+	execution.Agents = append(execution.Agents, agentExec)
+	agentIndex := len(execution.Agents) - 1
+	execution.mutex.Unlock()
+
+	// For POC, simulate agent execution
+	output, err := de.callMockAgent(agent, input)
+
+	execution.mutex.Lock()
+	if err != nil {
+		execution.Agents[agentIndex].Status = "failed"
+		execution.Agents[agentIndex].Error = err.Error()
+	} else {
+		execution.Agents[agentIndex].Status = "completed"
+		execution.Agents[agentIndex].Output = output
+	}
+	now := time.Now()
+	execution.Agents[agentIndex].EndTime = &now
+	execution.mutex.Unlock()
+
+	if err != nil {
+		log.Printf("❌ Agent %s failed: %v", agent.Name, err)
+		return nil, err
+	}
+
+	log.Printf("✅ Agent %s completed", agent.Name)
+	return output, nil
 }
 
-// GetExecution retrieves a workflow execution by ID
-func (d *DAGExecutor) GetExecution(id string) *WorkflowExecution {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-	return d.executions[id]
+func (de *DAGExecutor) callMockAgent(agent Agent, input map[string]interface{}) (map[string]interface{}, error) {
+	// For POC: simulate agent execution
+	time.Sleep(time.Duration(1+len(agent.Name)%3) * time.Second) // Simulate processing
+
+	switch agent.Name {
+	case "data-collector", "greeter":
+		return map[string]interface{}{
+			"message":   fmt.Sprintf("Hello from %s!", agent.Name),
+			"timestamp": time.Now().Format(time.RFC3339),
+			"data":      []string{"item1", "item2", "item3"},
+		}, nil
+	case "data-processor", "processor":
+		return map[string]interface{}{
+			"processed": true,
+			"timestamp": time.Now().Format(time.RFC3339),
+			"quality":   0.95,
+			"input":     input,
+		}, nil
+	case "data-publisher", "publisher":
+		return map[string]interface{}{
+			"published": true,
+			"timestamp": time.Now().Format(time.RFC3339),
+			"endpoint":  "mock://published",
+		}, nil
+	default:
+		return map[string]interface{}{
+			"message":   fmt.Sprintf("Executed %s", agent.Name),
+			"input":     input,
+			"timestamp": time.Now().Format(time.RFC3339),
+		}, nil
+	}
 }
 
-// ListExecutions returns all workflow executions
-func (d *DAGExecutor) ListExecutions() []*WorkflowExecution {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
+// Dependency graph structures
+type DependencyGraph struct {
+	Nodes []*GraphNode
+}
+
+type GraphNode struct {
+	Agent        Agent
+	Dependencies []string
+}
+
+func buildDependencyGraph(agents []Agent) *DependencyGraph {
+	nodes := make([]*GraphNode, 0, len(agents))
 	
-	executions := make([]*WorkflowExecution, 0, len(d.executions))
-	for _, exec := range d.executions {
-		executions = append(executions, exec)
+	for _, agent := range agents {
+		node := &GraphNode{
+			Agent:        agent,
+			Dependencies: agent.DependsOn,
+		}
+		nodes = append(nodes, node)
 	}
-	return executions
+
+	return &DependencyGraph{Nodes: nodes}
 }
 
-// Workflow represents the structure from deploy.go
-type Workflow struct {
-	APIVersion string `yaml:"apiVersion"`
-	Kind       string `yaml:"kind"`
-	Metadata   struct {
-		Name      string            `yaml:"name"`
-		Namespace string            `yaml:"namespace,omitempty"`
-		Labels    map[string]string `yaml:"labels,omitempty"`
-	} `yaml:"metadata"`
-	Spec WorkflowSpec `yaml:"spec"`
+// WorkflowExecution represents a running workflow instance
+type WorkflowExecution struct {
+	ID        string               `json:"id"`
+	Status    string               `json:"status"`
+	Agents    []AgentExecution     `json:"agents"`
+	StartTime time.Time            `json:"start_time"`
+	EndTime   *time.Time           `json:"end_time,omitempty"`
+	Error     string               `json:"error,omitempty"`
+	Workflow  *Workflow            `json:"workflow,omitempty"`
+	ctx       context.Context      `json:"-"`
+	cancel    context.CancelFunc   `json:"-"`
+	mutex     sync.RWMutex         `json:"-"`
 }
 
-type WorkflowSpec struct {
-	Agents   []Agent   `yaml:"agents"`
-	Triggers []Trigger `yaml:"triggers,omitempty"`
-	Config   Config    `yaml:"config,omitempty"`
+func (we *WorkflowExecution) Cancel() {
+	we.cancel()
 }
 
-type Agent struct {
-	Name      string            `yaml:"name"`
-	Image     string            `yaml:"image"`
-	LLM       LLMConfig         `yaml:"llm"`
-	DependsOn []string          `yaml:"dependsOn,omitempty"`
-	Resources Resources         `yaml:"resources,omitempty"`
-	Env       map[string]string `yaml:"env,omitempty"`
-	Timeout   string            `yaml:"timeout,omitempty"`
-	Retries   int               `yaml:"retries,omitempty"`
+func (we *WorkflowExecution) GetStatus() string {
+	we.mutex.RLock()
+	defer we.mutex.RUnlock()
+	return we.Status
 }
 
-type Resources struct {
-	Memory string `yaml:"memory,omitempty"`
-	CPU    string `yaml:"cpu,omitempty"`
+func (we *WorkflowExecution) GetAgents() []AgentExecution {
+	we.mutex.RLock()
+	defer we.mutex.RUnlock()
+	return we.Agents
 }
 
-type Trigger struct {
-	Schedule string `yaml:"schedule,omitempty"`
-	Webhook  string `yaml:"webhook,omitempty"`
-	Event    string `yaml:"event,omitempty"`
+// AgentExecution represents a running agent instance
+type AgentExecution struct {
+	Name      string                 `json:"name"`
+	Status    string                 `json:"status"`
+	StartTime time.Time              `json:"start_time"`
+	EndTime   *time.Time             `json:"end_time,omitempty"`
+	Output    map[string]interface{} `json:"output,omitempty"`
+	Error     string                 `json:"error,omitempty"`
 }

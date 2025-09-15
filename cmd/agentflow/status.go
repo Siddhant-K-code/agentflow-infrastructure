@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"text/tabwriter"
 	"time"
@@ -11,167 +14,217 @@ import (
 
 var statusCmd = &cobra.Command{
 	Use:   "status [workflow-name]",
-	Short: "Show workflow status and execution details",
-	Long: `Display the current status of workflows, including agent states,
-execution progress, and recent events.`,
+	Short: "Show status of workflows",
+	Long:  `Display the current status of all workflows or a specific workflow.`,
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return listAllWorkflows()
+		if len(args) == 1 {
+			return showWorkflowStatus(args[0])
 		}
-		return showWorkflowStatus(args[0])
+		return listAllWorkflows()
 	},
 }
 
 func listAllWorkflows() error {
-	fmt.Println("📋 Active Workflows:")
-	fmt.Println()
+	orchestratorURL := getOrchestratorURL()
 	
-	// TODO: Get actual workflow data from orchestrator
-	workflows := []WorkflowStatus{
-		{
-			Name:      "data-processing-pipeline",
-			Status:    "Running",
-			Agents:    3,
-			Started:   time.Now().Add(-2 * time.Hour),
-			LastEvent: "Agent 'data-processor' completed successfully",
-		},
-		{
-			Name:      "content-generation",
-			Status:    "Paused",
-			Agents:    2,
-			Started:   time.Now().Add(-30 * time.Minute),
-			LastEvent: "Waiting for manual approval",
-		},
+	resp, err := http.Get(orchestratorURL + "/api/v1/workflows")
+	if err != nil {
+		return fmt.Errorf("failed to connect to orchestrator at %s: %w", orchestratorURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("orchestrator returned error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Workflows []WorkflowSummary `json:"workflows"`
 	}
 	
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("failed to parse orchestrator response: %w", err)
+	}
+
+	if len(result.Workflows) == 0 {
+		fmt.Println("📭 No workflows found")
+		fmt.Println("💡 Deploy one with: agentflow deploy workflow.yaml")
+		return nil
+	}
+
+	// Display workflows in table format
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "NAME\tSTATUS\tAGENTS\tSTARTED\tLAST EVENT")
-	fmt.Fprintln(w, "----\t------\t------\t-------\t----------")
+	fmt.Fprintln(w, "NAME\tSTATUS\tSTARTED\tID")
 	
-	for _, wf := range workflows {
-		fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n",
-			wf.Name,
-			wf.Status,
-			wf.Agents,
-			formatDuration(time.Since(wf.Started)),
-			wf.LastEvent)
+	for _, workflow := range result.Workflows {
+		startTime := ""
+		if workflow.StartTime != nil {
+			startTime = workflow.StartTime.Format("2006-01-02 15:04:05")
+		}
+		
+		status := workflow.Status
+		switch status {
+		case "running":
+			status = "🔄 " + status
+		case "completed":
+			status = "✅ " + status
+		case "failed":
+			status = "❌ " + status
+		default:
+			status = "⏳ " + status
+		}
+		
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", 
+			workflow.Name, status, startTime, workflow.ID[:8]+"...")
 	}
 	
 	w.Flush()
 	return nil
 }
 
-func showWorkflowStatus(workflowName string) error {
-	fmt.Printf("🔍 Workflow Status: %s\n", workflowName)
-	fmt.Println()
+func showWorkflowStatus(workflowNameOrID string) error {
+	orchestratorURL := getOrchestratorURL()
 	
-	// TODO: Get actual workflow data from orchestrator
-	workflow := WorkflowStatus{
-		Name:    workflowName,
-		Status:  "Running",
-		Agents:  3,
-		Started: time.Now().Add(-2 * time.Hour),
+	// First try to find workflow by name or ID
+	workflows, err := getWorkflowList()
+	if err != nil {
+		return err
 	}
-	
-	agents := []AgentStatus{
-		{
-			Name:     "data-collector",
-			Status:   "Completed",
-			Started:  time.Now().Add(-2 * time.Hour),
-			Finished: time.Now().Add(-90 * time.Minute),
-			LLM:      "openai/gpt-4",
-			Retries:  0,
-		},
-		{
-			Name:    "data-processor",
-			Status:  "Running",
-			Started: time.Now().Add(-90 * time.Minute),
-			LLM:     "anthropic/claude-3-sonnet",
-			Retries: 1,
-		},
-		{
-			Name:   "data-publisher",
-			Status: "Pending",
-			LLM:    "openai/gpt-3.5-turbo",
-		},
-	}
-	
-	fmt.Printf("📊 Overall Status: %s\n", workflow.Status)
-	fmt.Printf("⏰ Started: %s ago\n", formatDuration(time.Since(workflow.Started)))
-	fmt.Printf("🤖 Total Agents: %d\n", workflow.Agents)
-	fmt.Println()
-	
-	fmt.Println("🔧 Agent Details:")
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "AGENT\tSTATUS\tLLM\tSTARTED\tDURATION\tRETRIES")
-	fmt.Fprintln(w, "-----\t------\t---\t-------\t--------\t-------")
-	
-	for _, agent := range agents {
-		duration := ""
-		if !agent.Started.IsZero() {
-			if !agent.Finished.IsZero() {
-				duration = formatDuration(agent.Finished.Sub(agent.Started))
-			} else {
-				duration = formatDuration(time.Since(agent.Started))
-			}
+
+	var targetWorkflow *WorkflowSummary
+	for _, w := range workflows {
+		if w.Name == workflowNameOrID || w.ID == workflowNameOrID {
+			targetWorkflow = &w
+			break
 		}
+	}
+
+	if targetWorkflow == nil {
+		return fmt.Errorf("workflow '%s' not found", workflowNameOrID)
+	}
+
+	// Get detailed status
+	resp, err := http.Get(orchestratorURL + "/api/v1/workflows/" + targetWorkflow.ID + "/status")
+	if err != nil {
+		return fmt.Errorf("failed to get workflow status: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("orchestrator returned error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var status WorkflowStatus
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return fmt.Errorf("failed to parse workflow status: %w", err)
+	}
+
+	// Display detailed status
+	fmt.Printf("📋 Workflow: %s\n", targetWorkflow.Name)
+	fmt.Printf("🆔 ID: %s\n", status.ID)
+	fmt.Printf("📊 Status: %s\n", getStatusEmoji(status.Status))
+	fmt.Printf("⏰ Started: %s\n", status.StartTime.Format("2006-01-02 15:04:05"))
+	
+	if status.EndTime != nil {
+		fmt.Printf("🏁 Finished: %s\n", status.EndTime.Format("2006-01-02 15:04:05"))
+		duration := status.EndTime.Sub(status.StartTime)
+		fmt.Printf("⏱️  Duration: %s\n", duration.Round(time.Second))
+	}
+
+	if status.Error != "" {
+		fmt.Printf("❌ Error: %s\n", status.Error)
+	}
+
+	// Display agent status
+	if len(status.Agents) > 0 {
+		fmt.Printf("\n🤖 Agents:\n")
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+		fmt.Fprintln(w, "AGENT\tSTATUS\tDURATION\tERROR")
 		
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\n",
-			agent.Name,
-			agent.Status,
-			agent.LLM,
-			formatTime(agent.Started),
-			duration,
-			agent.Retries)
+		for _, agent := range status.Agents {
+			duration := ""
+			if agent.EndTime != nil {
+				duration = agent.EndTime.Sub(agent.StartTime).Round(time.Second).String()
+			} else if agent.Status == "running" {
+				duration = time.Since(agent.StartTime).Round(time.Second).String()
+			}
+			
+			errorMsg := ""
+			if agent.Error != "" {
+				errorMsg = agent.Error
+				if len(errorMsg) > 30 {
+					errorMsg = errorMsg[:27] + "..."
+				}
+			}
+			
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+				agent.Name, getStatusEmoji(agent.Status), duration, errorMsg)
+		}
+		w.Flush()
 	}
-	
-	w.Flush()
-	
-	fmt.Println()
-	fmt.Println("📈 Recent Events:")
-	events := []string{
-		"2m ago: Agent 'data-processor' started execution",
-		"5m ago: Agent 'data-collector' completed successfully",
-		"15m ago: Workflow started",
-	}
-	
-	for _, event := range events {
-		fmt.Printf("  • %s\n", event)
-	}
-	
+
+	fmt.Printf("\n💡 Live view: agentflow live-view %s\n", targetWorkflow.Name)
 	return nil
+}
+
+func getWorkflowList() ([]WorkflowSummary, error) {
+	orchestratorURL := getOrchestratorURL()
+	
+	resp, err := http.Get(orchestratorURL + "/api/v1/workflows")
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to orchestrator: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Workflows []WorkflowSummary `json:"workflows"`
+	}
+	
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse workflows: %w", err)
+	}
+
+	return result.Workflows, nil
+}
+
+func getStatusEmoji(status string) string {
+	switch status {
+	case "running":
+		return "🔄 running"
+	case "completed":
+		return "✅ completed"
+	case "failed":
+		return "❌ failed"
+	case "pending":
+		return "⏳ pending"
+	default:
+		return "❓ " + status
+	}
+}
+
+type WorkflowSummary struct {
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Status    string     `json:"status"`
+	StartTime *time.Time `json:"start_time"`
 }
 
 type WorkflowStatus struct {
-	Name      string
-	Status    string
-	Agents    int
-	Started   time.Time
-	LastEvent string
+	ID        string           `json:"id"`
+	Status    string           `json:"status"`
+	Agents    []AgentStatus    `json:"agents"`
+	StartTime time.Time        `json:"start_time"`
+	EndTime   *time.Time       `json:"end_time"`
+	Error     string           `json:"error"`
 }
 
 type AgentStatus struct {
-	Name     string
-	Status   string
-	Started  time.Time
-	Finished time.Time
-	LLM      string
-	Retries  int
-}
-
-func formatDuration(d time.Duration) string {
-	if d < time.Minute {
-		return fmt.Sprintf("%ds", int(d.Seconds()))
-	}
-	if d < time.Hour {
-		return fmt.Sprintf("%dm", int(d.Minutes()))
-	}
-	return fmt.Sprintf("%dh%dm", int(d.Hours()), int(d.Minutes())%60)
-}
-
-func formatTime(t time.Time) string {
-	if t.IsZero() {
-		return "-"
-	}
-	return formatDuration(time.Since(t)) + " ago"
+	Name      string                 `json:"name"`
+	Status    string                 `json:"status"`
+	StartTime time.Time              `json:"start_time"`
+	EndTime   *time.Time             `json:"end_time"`
+	Output    map[string]interface{} `json:"output"`
+	Error     string                 `json:"error"`
 }

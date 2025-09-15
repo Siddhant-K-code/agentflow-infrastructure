@@ -1,0 +1,48 @@
+apiVersion: agentflow.io/v1
+kind: Workflow
+metadata:
+  name: hello-world-pipeline
+  labels:
+    environment: demo
+    type: poc
+spec:
+  agents:
+    - name: greeter
+      image: agentflow/hello-world:latest
+      env:
+        AGENT_NAME: "greeter"
+        PORT: "3000"
+      resources:
+        memory: 128Mi
+        cpu: 50m
+      timeout: "30s"
+      retries: 2
+
+    - name: processor
+      image: agentflow/hello-world:latest
+      env:
+        AGENT_NAME: "processor"
+        PORT: "3000"
+      dependsOn: [greeter]
+      resources:
+        memory: 128Mi
+        cpu: 50m
+      timeout: "30s"
+      retries: 2
+
+    - name: publisher
+      image: agentflow/hello-world:latest
+      env:
+        AGENT_NAME: "publisher"
+        PORT: "3000"
+      dependsOn: [processor]
+      resources:
+        memory: 128Mi
+        cpu: 50m
+      timeout: "30s"
+      retries: 1
+
+  config:
+    parallelism: 1
+    timeout: "5m"
+    retryPolicy: "exponential"

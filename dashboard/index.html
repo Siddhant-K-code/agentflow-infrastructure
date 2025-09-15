@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentFlow Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .header {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .header h1 {
+            color: #2563eb;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .stats-card h3 {
+            color: #475569;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .stats-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .status-card .number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .status-card .label {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        
+        .running { color: #2563eb; }
+        .completed { color: #059669; }
+        .failed { color: #dc2626; }
+        .pending { color: #d97706; }
+        
+        .workflows-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .refresh-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .workflows-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .workflows-table th,
+        .workflows-table td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .workflows-table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.875rem;
+        }
+        
+        .workflow-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-running {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .status-completed {
+            background: #d1fae5;
+            color: #059669;
+        }
+        
+        .status-failed {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .status-pending {
+            background: #fed7aa;
+            color: #d97706;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 AgentFlow Dashboard</h1>
+    </div>
+    
+    <div class="container">
+        <div class="dashboard-grid">
+            <div class="stats-card">
+                <h3>Total Workflows</h3>
+                <div class="stats-value" id="total-workflows">-</div>
+            </div>
+            
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="number running" id="running-count">-</div>
+                    <div class="label">Running</div>
+                </div>
+                <div class="status-card">
+                    <div class="number completed" id="completed-count">-</div>
+                    <div class="label">Completed</div>
+                </div>
+                <div class="status-card">
+                    <div class="number failed" id="failed-count">-</div>
+                    <div class="label">Failed</div>
+                </div>
+                <div class="status-card">
+                    <div class="number pending" id="pending-count">-</div>
+                    <div class="label">Pending</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="workflows-section">
+            <div class="section-header">
+                <h2 class="section-title">Active Workflows</h2>
+                <button class="refresh-btn" onclick="refreshData()">Refresh</button>
+            </div>
+            
+            <div id="error-message" class="error" style="display: none;"></div>
+            
+            <div id="loading" class="loading">
+                Loading workflows...
+            </div>
+            
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <h3>No workflows found</h3>
+                <p>Deploy your first workflow with: <code>agentflow deploy workflow.yaml</code></p>
+            </div>
+            
+            <table id="workflows-table" class="workflows-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Agents</th>
+                        <th>Started</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody id="workflows-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        
+        async function fetchWorkflows() {
+            try {
+                const response = await fetch(`${API_BASE}/workflows`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                return data.workflows || [];
+            } catch (error) {
+                console.error('Error fetching workflows:', error);
+                throw error;
+            }
+        }
+        
+        async function fetchWorkflowStatus(id) {
+            try {
+                const response = await fetch(`${API_BASE}/workflows/${id}/status`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching status for workflow ${id}:`, error);
+                return null;
+            }
+        }
+        
+        function formatDuration(startTime, endTime) {
+            const start = new Date(startTime);
+            const end = endTime ? new Date(endTime) : new Date();
+            const diff = end - start;
+            
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds % 60}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+        
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) {
+                return `${days}d ago`;
+            } else if (hours > 0) {
+                return `${hours}h ago`;
+            } else if (minutes > 0) {
+                return `${minutes}m ago`;
+            } else {
+                return 'Just now';
+            }
+        }
+        
+        function getStatusClass(status) {
+            return `workflow-status status-${status.toLowerCase()}`;
+        }
+        
+        function getStatusEmoji(status) {
+            switch (status.toLowerCase()) {
+                case 'running': return '🔄';
+                case 'completed': return '✅';
+                case 'failed': return '❌';
+                case 'pending': return '⏳';
+                default: return '❓';
+            }
+        }
+        
+        async function refreshData() {
+            showLoading();
+            hideError();
+            
+            try {
+                const workflows = await fetchWorkflows();
+                
+                if (workflows.length === 0) {
+                    showEmptyState();
+                    updateStats([], []);
+                    return;
+                }
+                
+                // Fetch detailed status for each workflow
+                const detailedWorkflows = await Promise.all(
+                    workflows.map(async (workflow) => {
+                        const status = await fetchWorkflowStatus(workflow.id);
+                        return { ...workflow, details: status };
+                    })
+                );
+                
+                updateStats(workflows, detailedWorkflows);
+                updateWorkflowsTable(detailedWorkflows);
+                showTable();
+                
+            } catch (error) {
+                showError(`Failed to load workflows: ${error.message}`);
+            }
+        }
+        
+        function updateStats(workflows, detailedWorkflows) {
+            const stats = {
+                running: 0,
+                completed: 0,
+                failed: 0,
+                pending: 0
+            };
+            
+            workflows.forEach(workflow => {
+                const status = workflow.status.toLowerCase();
+                if (stats.hasOwnProperty(status)) {
+                    stats[status]++;
+                }
+            });
+            
+            document.getElementById('total-workflows').textContent = workflows.length;
+            document.getElementById('running-count').textContent = stats.running;
+            document.getElementById('completed-count').textContent = stats.completed;
+            document.getElementById('failed-count').textContent = stats.failed;
+            document.getElementById('pending-count').textContent = stats.pending;
+        }
+        
+        function updateWorkflowsTable(workflows) {
+            const tbody = document.getElementById('workflows-tbody');
+            tbody.innerHTML = '';
+            
+            workflows.forEach(workflow => {
+                const row = document.createElement('tr');
+                const details = workflow.details;
+                
+                row.innerHTML = `
+                    <td><strong>${workflow.name}</strong></td>
+                    <td>
+                        <span class="${getStatusClass(workflow.status)}">
+                            ${getStatusEmoji(workflow.status)} ${workflow.status}
+                        </span>
+                    </td>
+                    <td>${details && details.agents ? details.agents.length : '-'}</td>
+                    <td>${workflow.start_time ? formatTimeAgo(workflow.start_time) : '-'}</td>
+                    <td>${workflow.start_time ? formatDuration(workflow.start_time, details?.end_time) : '-'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('workflows-table').style.display = 'none';
+            document.getElementById('empty-state').style.display = 'none';
+        }
+        
+        function showTable() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('workflows-table').style.display = 'table';
+            document.getElementById('empty-state').style.display = 'none';
+        }
+        
+        function showEmptyState() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('workflows-table').style.display = 'none';
+            document.getElementById('empty-state').style.display = 'block';
+        }
+        
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-message').style.display = 'block';
+        }
+        
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+        
+        // Initialize dashboard
+        refreshData();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(refreshData, 30000);
+    </script>
+</body>
+</html>

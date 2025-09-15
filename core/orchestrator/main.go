@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -155,15 +156,52 @@ func setupRoutes(router *mux.Router, orchestrator *Orchestrator) {
 }
 
 func (o *Orchestrator) handleCreateWorkflow(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement workflow creation
+	var workflow Workflow
+	if err := json.NewDecoder(r.Body).Decode(&workflow); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Execute workflow
+	execution, err := o.dagExecutor.ExecuteWorkflow(&workflow)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to execute workflow: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Store execution
+	o.mutex.Lock()
+	o.workflows[execution.ID] = execution
+	o.mutex.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(`{"status": "created", "id": "workflow-123"}`))
+	response := map[string]interface{}{
+		"id":     execution.ID,
+		"status": execution.GetStatus(),
+		"name":   workflow.Metadata.Name,
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func (o *Orchestrator) handleListWorkflows(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement workflow listing
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+
+	workflows := make([]map[string]interface{}, 0)
+	for id, execution := range o.workflows {
+		workflows = append(workflows, map[string]interface{}{
+			"id":     id,
+			"status": execution.GetStatus(),
+			"name":   execution.Workflow.Metadata.Name,
+			"start_time": execution.StartTime,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"workflows": []}`))
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"workflows": workflows,
+	})
 }
 
 func (o *Orchestrator) handleGetWorkflow(w http.ResponseWriter, r *http.Request) {
@@ -182,12 +220,32 @@ func (o *Orchestrator) handleDeleteWorkflow(w http.ResponseWriter, r *http.Reque
 }
 
 func (o *Orchestrator) handleGetWorkflowStatus(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement workflow status retrieval
 	vars := mux.Vars(r)
 	workflowID := vars["id"]
-	
+
+	o.mutex.RLock()
+	execution, exists := o.workflows[workflowID]
+	o.mutex.RUnlock()
+
+	if !exists {
+		http.Error(w, "Workflow not found", http.StatusNotFound)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(fmt.Sprintf(`{"id": "%s", "status": "running", "agents": []}`, workflowID)))
+	response := map[string]interface{}{
+		"id":         execution.ID,
+		"status":     execution.GetStatus(),
+		"agents":     execution.GetAgents(),
+		"start_time": execution.StartTime,
+		"end_time":   execution.EndTime,
+	}
+
+	if execution.Error != "" {
+		response["error"] = execution.Error
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func (o *Orchestrator) handleGetWorkflowLogs(w http.ResponseWriter, r *http.Request) {
@@ -209,4 +267,56 @@ func (o *Orchestrator) handleWebhookTrigger(w http.ResponseWriter, r *http.Reque
 	
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"webhook": "%s", "triggered": true}`, webhook)))
+}
+
+// Workflow structures (copied from deploy.go for consistency)
+type Workflow struct {
+	APIVersion string `yaml:"apiVersion" json:"apiVersion"`
+	Kind       string `yaml:"kind" json:"kind"`
+	Metadata   struct {
+		Name      string            `yaml:"name" json:"name"`
+		Namespace string            `yaml:"namespace,omitempty" json:"namespace,omitempty"`
+		Labels    map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	} `yaml:"metadata" json:"metadata"`
+	Spec WorkflowSpec `yaml:"spec" json:"spec"`
+}
+
+type WorkflowSpec struct {
+	Agents   []Agent   `yaml:"agents" json:"agents"`
+	Triggers []Trigger `yaml:"triggers,omitempty" json:"triggers,omitempty"`
+	Config   ConfigSpec    `yaml:"config,omitempty" json:"config,omitempty"`
+}
+
+type Agent struct {
+	Name      string            `yaml:"name" json:"name"`
+	Image     string            `yaml:"image" json:"image"`
+	LLM       LLMConfig         `yaml:"llm" json:"llm"`
+	DependsOn []string          `yaml:"dependsOn,omitempty" json:"dependsOn,omitempty"`
+	Resources Resources         `yaml:"resources,omitempty" json:"resources,omitempty"`
+	Env       map[string]string `yaml:"env,omitempty" json:"env,omitempty"`
+	Timeout   string            `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	Retries   int               `yaml:"retries,omitempty" json:"retries,omitempty"`
+}
+
+type LLMConfig struct {
+	Provider string            `yaml:"provider" json:"provider"`
+	Model    string            `yaml:"model" json:"model"`
+	Config   map[string]string `yaml:"config,omitempty" json:"config,omitempty"`
+}
+
+type Resources struct {
+	Memory string `yaml:"memory,omitempty" json:"memory,omitempty"`
+	CPU    string `yaml:"cpu,omitempty" json:"cpu,omitempty"`
+}
+
+type Trigger struct {
+	Schedule string `yaml:"schedule,omitempty" json:"schedule,omitempty"`
+	Webhook  string `yaml:"webhook,omitempty" json:"webhook,omitempty"`
+	Event    string `yaml:"event,omitempty" json:"event,omitempty"`
+}
+
+type ConfigSpec struct {
+	Parallelism int    `yaml:"parallelism,omitempty" json:"parallelism,omitempty"`
+	Timeout     string `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	RetryPolicy string `yaml:"retryPolicy,omitempty" json:"retryPolicy,omitempty"`
 }

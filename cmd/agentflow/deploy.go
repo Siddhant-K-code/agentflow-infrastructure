@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -38,11 +42,12 @@ The YAML file defines agents, dependencies, triggers, and execution parameters.`
 			return fmt.Errorf("workflow validation failed: %w", err)
 		}
 
-		// Deploy workflow
-		fmt.Printf("Deploying workflow: %s\n", workflow.Metadata.Name)
+		// Deploy workflow to orchestrator
+		fmt.Printf("🚀 Deploying workflow: %s\n", workflow.Metadata.Name)
 		
-		// TODO: Implement actual deployment logic
-		// This will integrate with the orchestrator service
+		if err := deployToOrchestrator(&workflow); err != nil {
+			return fmt.Errorf("deployment failed: %w", err)
+		}
 		
 		fmt.Printf("✅ Workflow '%s' deployed successfully!\n", workflow.Metadata.Name)
 		fmt.Printf("📊 Monitor with: agentflow status %s\n", workflow.Metadata.Name)
@@ -50,6 +55,42 @@ The YAML file defines agents, dependencies, triggers, and execution parameters.`
 		
 		return nil
 	},
+}
+
+func deployToOrchestrator(workflow *Workflow) error {
+	orchestratorURL := getOrchestratorURL()
+	
+	jsonData, err := json.Marshal(workflow)
+	if err != nil {
+		return fmt.Errorf("failed to marshal workflow: %w", err)
+	}
+
+	resp, err := http.Post(orchestratorURL+"/api/v1/workflows", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to connect to orchestrator at %s: %w", orchestratorURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("orchestrator returned error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("failed to parse orchestrator response: %w", err)
+	}
+
+	fmt.Printf("📋 Workflow ID: %s\n", result["id"])
+	return nil
+}
+
+func getOrchestratorURL() string {
+	if url := os.Getenv("AGENTFLOW_ORCHESTRATOR_URL"); url != "" {
+		return url
+	}
+	return "http://localhost:8080"
 }
 
 func validateWorkflow(workflow *Workflow) error {
@@ -74,9 +115,7 @@ func validateWorkflow(workflow *Workflow) error {
 		if agent.Image == "" {
 			return fmt.Errorf("agent image is required for agent '%s'", agent.Name)
 		}
-		if agent.LLM.Provider == "" {
-			return fmt.Errorf("LLM provider is required for agent '%s'", agent.Name)
-		}
+		// LLM provider is optional for POC
 	}
 	
 	return nil
@@ -84,52 +123,52 @@ func validateWorkflow(workflow *Workflow) error {
 
 // Workflow configuration structures
 type Workflow struct {
-	APIVersion string `yaml:"apiVersion"`
-	Kind       string `yaml:"kind"`
+	APIVersion string `yaml:"apiVersion" json:"apiVersion"`
+	Kind       string `yaml:"kind" json:"kind"`
 	Metadata   struct {
-		Name      string            `yaml:"name"`
-		Namespace string            `yaml:"namespace,omitempty"`
-		Labels    map[string]string `yaml:"labels,omitempty"`
-	} `yaml:"metadata"`
-	Spec WorkflowSpec `yaml:"spec"`
+		Name      string            `yaml:"name" json:"name"`
+		Namespace string            `yaml:"namespace,omitempty" json:"namespace,omitempty"`
+		Labels    map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	} `yaml:"metadata" json:"metadata"`
+	Spec WorkflowSpec `yaml:"spec" json:"spec"`
 }
 
 type WorkflowSpec struct {
-	Agents   []Agent   `yaml:"agents"`
-	Triggers []Trigger `yaml:"triggers,omitempty"`
-	Config   Config    `yaml:"config,omitempty"`
+	Agents   []Agent   `yaml:"agents" json:"agents"`
+	Triggers []Trigger `yaml:"triggers,omitempty" json:"triggers,omitempty"`
+	Config   Config    `yaml:"config,omitempty" json:"config,omitempty"`
 }
 
 type Agent struct {
-	Name      string            `yaml:"name"`
-	Image     string            `yaml:"image"`
-	LLM       LLMConfig         `yaml:"llm"`
-	DependsOn []string          `yaml:"dependsOn,omitempty"`
-	Resources Resources         `yaml:"resources,omitempty"`
-	Env       map[string]string `yaml:"env,omitempty"`
-	Timeout   string            `yaml:"timeout,omitempty"`
-	Retries   int               `yaml:"retries,omitempty"`
+	Name      string            `yaml:"name" json:"name"`
+	Image     string            `yaml:"image" json:"image"`
+	LLM       LLMConfig         `yaml:"llm" json:"llm"`
+	DependsOn []string          `yaml:"dependsOn,omitempty" json:"dependsOn,omitempty"`
+	Resources Resources         `yaml:"resources,omitempty" json:"resources,omitempty"`
+	Env       map[string]string `yaml:"env,omitempty" json:"env,omitempty"`
+	Timeout   string            `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	Retries   int               `yaml:"retries,omitempty" json:"retries,omitempty"`
 }
 
 type LLMConfig struct {
-	Provider string            `yaml:"provider"`
-	Model    string            `yaml:"model"`
-	Config   map[string]string `yaml:"config,omitempty"`
+	Provider string            `yaml:"provider" json:"provider"`
+	Model    string            `yaml:"model" json:"model"`
+	Config   map[string]string `yaml:"config,omitempty" json:"config,omitempty"`
 }
 
 type Resources struct {
-	Memory string `yaml:"memory,omitempty"`
-	CPU    string `yaml:"cpu,omitempty"`
+	Memory string `yaml:"memory,omitempty" json:"memory,omitempty"`
+	CPU    string `yaml:"cpu,omitempty" json:"cpu,omitempty"`
 }
 
 type Trigger struct {
-	Schedule string `yaml:"schedule,omitempty"`
-	Webhook  string `yaml:"webhook,omitempty"`
-	Event    string `yaml:"event,omitempty"`
+	Schedule string `yaml:"schedule,omitempty" json:"schedule,omitempty"`
+	Webhook  string `yaml:"webhook,omitempty" json:"webhook,omitempty"`
+	Event    string `yaml:"event,omitempty" json:"event,omitempty"`
 }
 
 type Config struct {
-	Parallelism int    `yaml:"parallelism,omitempty"`
-	Timeout     string `yaml:"timeout,omitempty"`
-	RetryPolicy string `yaml:"retryPolicy,omitempty"`
+	Parallelism int    `yaml:"parallelism,omitempty" json:"parallelism,omitempty"`
+	Timeout     string `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	RetryPolicy string `yaml:"retryPolicy,omitempty" json:"retryPolicy,omitempty"`
 }

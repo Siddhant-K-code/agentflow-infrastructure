@@ -23,13 +23,25 @@ build:
 	go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/agentflow
 
 # Build all components
-build-all: build build-orchestrator build-runtime build-llm-router
+build-all: build build-orchestrator build-dashboard build-agents
 
 # Build orchestrator
 build-orchestrator:
 	@echo "Building orchestrator..."
 	@mkdir -p $(BUILD_DIR)
 	go build $(LDFLAGS) -o $(BUILD_DIR)/orchestrator ./core/orchestrator
+
+# Build dashboard server
+build-dashboard:
+	@echo "Building dashboard server..."
+	@mkdir -p $(BUILD_DIR)
+	go build -o $(BUILD_DIR)/dashboard-server ./dashboard
+
+# Build mock agents
+build-agents:
+	@echo "Building mock agents..."
+	@mkdir -p $(BUILD_DIR)
+	go build -o $(BUILD_DIR)/mock-agent ./agents/hello-world
 
 # Build LLM router
 build-llm-router:
@@ -112,6 +124,25 @@ deps:
 	@echo "Updating Rust dependencies..."
 	@cd core/runtime && cargo update
 
+# POC Demo - Start all services locally
+demo:
+	@echo "🚀 Starting AgentFlow POC Demo..."
+	@make build-all
+	@echo ""
+	@echo "Starting services..."
+	@echo "📊 Dashboard: http://localhost:3001"
+	@echo "🔧 Orchestrator: http://localhost:8080"
+	@echo ""
+	@echo "Press Ctrl+C to stop all services"
+	@$(BUILD_DIR)/orchestrator & \
+	$(BUILD_DIR)/dashboard-server & \
+	wait
+
+# Quick POC test
+poc-test: build
+	@echo "🧪 Running POC test..."
+	@echo "Building and deploying hello-world example..."
+	@$(BUILD_DIR)/agentflow deploy examples/hello-world-pipeline.yaml || echo "⚠️  Orchestrator might not be running"
 # Show help
 help:
 	@echo "Available targets:"
@@ -123,6 +154,8 @@ help:
 	@echo "  clean          - Clean build artifacts"
 	@echo "  dev            - Start development environment"
 	@echo "  dev-stop       - Stop development environment"
+	@echo "  demo           - Start POC demo (orchestrator + dashboard)"
+	@echo "  poc-test       - Run quick POC test"
 	@echo "  deploy         - Deploy to Kubernetes"
 	@echo "  undeploy       - Remove from Kubernetes"
 	@echo "  fmt            - Format code"
