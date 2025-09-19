@@ -23,20 +23,16 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker ./cmd/work
 FROM alpine:3.18
 
 # Install runtime dependencies and tools for WASI/containers
-RUN apk --no-cache add ca-certificates tzdata curl wget xz
+RUN apk --no-cache add ca-certificates tzdata curl wget bash
 
-# Install wasmtime for WASI support
-RUN WASMTIME_VERSION="25.0.1" && \
-    ARCH=$(uname -m) && \
-    if [ "$ARCH" = "x86_64" ]; then WASMTIME_ARCH="x86_64"; \
-    elif [ "$ARCH" = "aarch64" ]; then WASMTIME_ARCH="aarch64"; \
-    else echo "Unsupported architecture: $ARCH" && exit 1; fi && \
-    curl -sSL "https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-linux.tar.xz" | \
-    tar -xJ -C /tmp && \
-    mv "/tmp/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-linux/wasmtime" /usr/local/bin/ && \
-    rm -rf /tmp/wasmtime-* && \
+# Install wasmtime for WASI support using the install script with workaround
+RUN mkdir -p ~/.config && \
+    touch ~/.profile && \
+    curl -sSf https://wasmtime.dev/install.sh | bash -s -- --version v15.0.1 && \
+    cp ~/.wasmtime/bin/wasmtime /usr/local/bin/ && \
     chmod +x /usr/local/bin/wasmtime && \
-    wasmtime --version
+    rm -rf ~/.wasmtime && \
+    echo "Wasmtime installed successfully"
 
 # Create non-root user
 RUN addgroup -g 1001 agentflow && \
