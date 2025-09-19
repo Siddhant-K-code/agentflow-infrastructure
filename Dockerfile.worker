@@ -23,9 +23,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker ./cmd/work
 FROM alpine:3.18
 
 # Install runtime dependencies and tools for WASI/containers
-RUN apk --no-cache add ca-certificates tzdata curl wget
+RUN apk --no-cache add ca-certificates tzdata curl wget bash
 
 # Install wasmtime for WASI support
+# Note: bash is required for the wasmtime installation script
 RUN curl -sSf https://wasmtime.dev/install.sh | bash
 ENV PATH="/root/.wasmtime/bin:${PATH}"
 
