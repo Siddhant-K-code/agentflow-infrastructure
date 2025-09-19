@@ -8,13 +8,13 @@ import (
 
 // PromptTemplate represents a versioned prompt template
 type PromptTemplate struct {
-	ID       uuid.UUID `json:"id" db:"id"`
-	OrgID    uuid.UUID `json:"org_id" db:"org_id"`
-	Name     string    `json:"name" db:"name"`
-	Version  int       `json:"version" db:"version"`
-	Template string    `json:"template" db:"template"`
-	Schema   Schema    `json:"schema" db:"schema"`
-	Metadata Metadata  `json:"metadata" db:"metadata"`
+	ID        uuid.UUID `json:"id" db:"id"`
+	OrgID     uuid.UUID `json:"org_id" db:"org_id"`
+	Name      string    `json:"name" db:"name"`
+	Version   int       `json:"version" db:"version"`
+	Template  string    `json:"template" db:"template"`
+	Schema    Schema    `json:"schema" db:"schema"`
+	Metadata  Metadata  `json:"metadata" db:"metadata"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
@@ -35,11 +35,11 @@ type Property struct {
 
 // PromptSuite represents an evaluation suite
 type PromptSuite struct {
-	ID        uuid.UUID   `json:"id" db:"id"`
-	OrgID     uuid.UUID   `json:"org_id" db:"org_id"`
-	Name      string      `json:"name" db:"name"`
-	Cases     []TestCase  `json:"cases" db:"cases"`
-	CreatedAt time.Time   `json:"created_at" db:"created_at"`
+	ID        uuid.UUID  `json:"id" db:"id"`
+	OrgID     uuid.UUID  `json:"org_id" db:"org_id"`
+	Name      string     `json:"name" db:"name"`
+	Cases     []TestCase `json:"cases" db:"cases"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
 }
 
 // TestCase represents a single test case in an evaluation suite
@@ -58,44 +58,44 @@ type Expected struct {
 }
 
 type ScoringConfig struct {
-	Type     ScoringType            `json:"type"`
-	Config   map[string]interface{} `json:"config,omitempty"`
-	Weight   float64                `json:"weight,omitempty"`
+	Type   ScoringType            `json:"type"`
+	Config map[string]interface{} `json:"config,omitempty"`
+	Weight float64                `json:"weight,omitempty"`
 }
 
 type ScoringType string
 
 const (
-	ScoringExact      ScoringType = "exact"
-	ScoringContains   ScoringType = "contains"
-	ScoringRegex      ScoringType = "regex"
-	ScoringSchema     ScoringType = "schema"
-	ScoringLLMJudge   ScoringType = "llm_judge"
-	ScoringEmbedding  ScoringType = "embedding"
+	ScoringExact     ScoringType = "exact"
+	ScoringContains  ScoringType = "contains"
+	ScoringRegex     ScoringType = "regex"
+	ScoringSchema    ScoringType = "schema"
+	ScoringLLMJudge  ScoringType = "llm_judge"
+	ScoringEmbedding ScoringType = "embedding"
 )
 
 // PromptDeployment represents a deployment configuration
 type PromptDeployment struct {
-	ID            uuid.UUID  `json:"id" db:"id"`
-	OrgID         uuid.UUID  `json:"org_id" db:"org_id"`
-	PromptName    string     `json:"prompt_name" db:"prompt_name"`
-	StableVersion int        `json:"stable_version" db:"stable_version"`
-	CanaryVersion *int       `json:"canary_version" db:"canary_version"`
-	CanaryRatio   float64    `json:"canary_ratio" db:"canary_ratio"`
-	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID `json:"id" db:"id"`
+	OrgID         uuid.UUID `json:"org_id" db:"org_id"`
+	PromptName    string    `json:"prompt_name" db:"prompt_name"`
+	StableVersion int       `json:"stable_version" db:"stable_version"`
+	CanaryVersion *int      `json:"canary_version" db:"canary_version"`
+	CanaryRatio   float64   `json:"canary_ratio" db:"canary_ratio"`
+	CreatedAt     time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // EvaluationRun represents a single evaluation execution
 type EvaluationRun struct {
-	ID           uuid.UUID            `json:"id"`
-	PromptID     uuid.UUID            `json:"prompt_id"`
-	SuiteID      uuid.UUID            `json:"suite_id"`
-	Status       EvaluationStatus     `json:"status"`
-	Results      []EvaluationResult   `json:"results"`
-	Summary      EvaluationSummary    `json:"summary"`
-	StartedAt    time.Time            `json:"started_at"`
-	CompletedAt  *time.Time           `json:"completed_at,omitempty"`
+	ID          uuid.UUID          `json:"id"`
+	PromptID    uuid.UUID          `json:"prompt_id"`
+	SuiteID     uuid.UUID          `json:"suite_id"`
+	Status      EvaluationStatus   `json:"status"`
+	Results     []EvaluationResult `json:"results"`
+	Summary     EvaluationSummary  `json:"summary"`
+	StartedAt   time.Time          `json:"started_at"`
+	CompletedAt *time.Time         `json:"completed_at,omitempty"`
 }
 
 type EvaluationStatus string
@@ -120,11 +120,11 @@ type EvaluationResult struct {
 }
 
 type EvaluationSummary struct {
-	TotalCases    int     `json:"total_cases"`
-	PassedCases   int     `json:"passed_cases"`
-	FailedCases   int     `json:"failed_cases"`
-	AverageScore  float64 `json:"average_score"`
-	TotalCost     int64   `json:"total_cost_cents"`
+	TotalCases     int           `json:"total_cases"`
+	PassedCases    int           `json:"passed_cases"`
+	FailedCases    int           `json:"failed_cases"`
+	AverageScore   float64       `json:"average_score"`
+	TotalCost      int64         `json:"total_cost_cents"`
 	AverageLatency time.Duration `json:"average_latency"`
 }
 

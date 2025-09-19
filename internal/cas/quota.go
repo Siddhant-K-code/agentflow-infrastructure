@@ -22,7 +22,7 @@ func NewQuotaManager(redisClient *redis.Client) *QuotaManager {
 // CheckQuota checks current quota status for a provider/model
 func (qm *QuotaManager) CheckQuota(ctx context.Context, providerName, modelName string) (*QuotaStatus, error) {
 	key := qm.buildQuotaKey(providerName, modelName)
-	
+
 	// Get current QPS and concurrent calls
 	pipe := qm.redis.Pipeline()
 	qpsResult := pipe.Get(ctx, key+":qps")
@@ -30,7 +30,7 @@ func (qm *QuotaManager) CheckQuota(ctx context.Context, providerName, modelName 
 	limitResult := pipe.Get(ctx, key+":limit")
 	maxConcurrentResult := pipe.Get(ctx, key+":max_concurrent")
 	lastResetResult := pipe.Get(ctx, key+":last_reset")
-	
+
 	_, err := pipe.Exec(ctx)
 	if err != nil && err != redis.Nil {
 		return nil, fmt.Errorf("failed to check quota: %w", err)
@@ -77,7 +77,7 @@ func (qm *QuotaManager) CheckQuota(ctx context.Context, providerName, modelName 
 // ReserveQuota reserves quota for a request
 func (qm *QuotaManager) ReserveQuota(ctx context.Context, providerName, modelName string) error {
 	key := qm.buildQuotaKey(providerName, modelName)
-	
+
 	// Use Lua script for atomic quota reservation
 	script := `
 		local qps_key = KEYS[1] .. ":qps"
@@ -144,7 +144,7 @@ func (qm *QuotaManager) ReserveQuota(ctx context.Context, providerName, modelNam
 func (qm *QuotaManager) ReleaseQuota(ctx context.Context, providerName, modelName string) error {
 	key := qm.buildQuotaKey(providerName, modelName)
 	concurrentKey := key + ":concurrent"
-	
+
 	// Decrement concurrent counter
 	result, err := qm.redis.Decr(ctx, concurrentKey).Result()
 	if err != nil {
@@ -163,12 +163,12 @@ func (qm *QuotaManager) ReleaseQuota(ctx context.Context, providerName, modelNam
 func (qm *QuotaManager) RecordUsage(ctx context.Context, providerName, modelName string, tokensUsed int) error {
 	key := qm.buildQuotaKey(providerName, modelName)
 	usageKey := key + ":usage"
-	
+
 	// Record token usage
 	pipe := qm.redis.Pipeline()
 	pipe.IncrBy(ctx, usageKey, int64(tokensUsed))
 	pipe.Expire(ctx, usageKey, 24*time.Hour)
-	
+
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to record usage: %w", err)
@@ -181,11 +181,11 @@ func (qm *QuotaManager) RecordUsage(ctx context.Context, providerName, modelName
 // SetQuotaLimits sets quota limits for a provider/model
 func (qm *QuotaManager) SetQuotaLimits(ctx context.Context, providerName, modelName string, qpsLimit, maxConcurrent int) error {
 	key := qm.buildQuotaKey(providerName, modelName)
-	
+
 	pipe := qm.redis.Pipeline()
 	pipe.Set(ctx, key+":limit", qpsLimit, 0) // No expiration for limits
 	pipe.Set(ctx, key+":max_concurrent", maxConcurrent, 0)
-	
+
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to set quota limits: %w", err)
@@ -197,7 +197,7 @@ func (qm *QuotaManager) SetQuotaLimits(ctx context.Context, providerName, modelN
 // GetUsageStats retrieves usage statistics
 func (qm *QuotaManager) GetUsageStats(ctx context.Context, providerName, modelName string, timeRange time.Duration) (*UsageStats, error) {
 	key := qm.buildQuotaKey(providerName, modelName)
-	
+
 	// Get current usage
 	usageResult, err := qm.redis.Get(ctx, key+":usage").Result()
 	if err != nil && err != redis.Nil {
@@ -229,13 +229,13 @@ func (qm *QuotaManager) GetUsageStats(ctx context.Context, providerName, modelNa
 // ResetQuota resets quota counters for a provider/model
 func (qm *QuotaManager) ResetQuota(ctx context.Context, providerName, modelName string) error {
 	key := qm.buildQuotaKey(providerName, modelName)
-	
+
 	pipe := qm.redis.Pipeline()
 	pipe.Del(ctx, key+":qps")
 	pipe.Del(ctx, key+":concurrent")
 	pipe.Del(ctx, key+":usage")
 	pipe.Set(ctx, key+":last_reset", time.Now().Unix(), time.Hour)
-	
+
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to reset quota: %w", err)
@@ -254,7 +254,7 @@ func (qm *QuotaManager) GetAllQuotaStatus(ctx context.Context) (map[string]*Quot
 	}
 
 	statuses := make(map[string]*QuotaStatus)
-	
+
 	for _, key := range keys {
 		// Extract provider and model from key
 		// Format: quota:provider:model:qps
@@ -265,7 +265,7 @@ func (qm *QuotaManager) GetAllQuotaStatus(ctx context.Context) (map[string]*Quot
 
 		providerName := parts[0]
 		modelName := parts[1]
-		
+
 		status, err := qm.CheckQuota(ctx, providerName, modelName)
 		if err != nil {
 			continue

@@ -1,10 +1,10 @@
 package aor
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"sync"
 	"time"
@@ -16,15 +16,15 @@ import (
 )
 
 type Worker struct {
-	id       string
-	cfg      *config.Config
-	db       *db.PostgresDB
-	redis    *redis.Client
-	nats     *nats.Conn
-	js       nats.JetStreamContext
-	
+	id    string
+	cfg   *config.Config
+	db    *db.PostgresDB
+	redis *redis.Client
+	nats  *nats.Conn
+	js    nats.JetStreamContext
+
 	executors map[ExecutorType]Executor
-	
+
 	mu       sync.RWMutex
 	running  bool
 	shutdown chan struct{}
@@ -58,13 +58,13 @@ func NewWorker(cfg *config.Config) (*Worker, error) {
 	}
 
 	worker := &Worker{
-		id:       uuid.New().String(),
-		cfg:      cfg,
-		db:       pgDB,
-		redis:    redisClient,
-		nats:     nc,
-		js:       js,
-		shutdown: make(chan struct{}),
+		id:        uuid.New().String(),
+		cfg:       cfg,
+		db:        pgDB,
+		redis:     redisClient,
+		nats:      nc,
+		js:        js,
+		shutdown:  make(chan struct{}),
 		executors: make(map[ExecutorType]Executor),
 	}
 
@@ -89,7 +89,7 @@ func (w *Worker) Start(ctx context.Context) error {
 	// Subscribe to task queues
 	subjects := []string{
 		"agentflow.tasks.Gold",
-		"agentflow.tasks.Silver", 
+		"agentflow.tasks.Silver",
 		"agentflow.tasks.Bronze",
 	}
 
@@ -229,12 +229,12 @@ func (w *Worker) updateStepStatus(ctx context.Context, stepID uuid.UUID, status 
 
 func (w *Worker) updateStepWithResult(ctx context.Context, result *TaskResult) error {
 	now := time.Now()
-	
+
 	query := `UPDATE step_run SET 
 			  status = $1, ended_at = $2, error = $3, cost_cents = $4, 
 			  tokens_prompt = $5, tokens_completion = $6
 			  WHERE id = $7`
-	
+
 	_, err := w.db.ExecContext(ctx, query,
 		result.Status, now, result.Error, result.CostCents,
 		result.TokensPrompt, result.TokensCompletion, result.TaskID,
@@ -270,9 +270,9 @@ func (w *Worker) heartbeatLoop(ctx context.Context) {
 
 func (w *Worker) sendHeartbeat(ctx context.Context) {
 	heartbeat := map[string]interface{}{
-		"worker_id":  w.id,
-		"timestamp":  time.Now(),
-		"status":     "healthy",
+		"worker_id": w.id,
+		"timestamp": time.Now(),
+		"status":    "healthy",
 	}
 
 	data, _ := json.Marshal(heartbeat)

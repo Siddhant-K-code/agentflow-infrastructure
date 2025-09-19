@@ -12,10 +12,10 @@ import (
 func TestPromptTemplateValidation(t *testing.T) {
 	t.Run("ValidTemplate", func(t *testing.T) {
 		template := &PromptTemplate{
-			ID:      uuid.New(),
-			OrgID:   uuid.New(),
-			Name:    "test_prompt",
-			Version: 1,
+			ID:       uuid.New(),
+			OrgID:    uuid.New(),
+			Name:     "test_prompt",
+			Version:  1,
 			Template: "Hello {{name}}, please analyze: {{content}}",
 			Schema: Schema{
 				Type: "object",

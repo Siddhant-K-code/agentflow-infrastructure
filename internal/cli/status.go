@@ -30,92 +30,92 @@ func runStatus(cmd *cobra.Command, args []string) error {
 
 	// Mock system status data
 	status := map[string]interface{}{
-		"timestamp": time.Now().Format(time.RFC3339),
+		"timestamp":      time.Now().Format(time.RFC3339),
 		"overall_status": "healthy",
-		"version": "1.0.0",
-		"uptime": "7d 14h 32m",
+		"version":        "1.0.0",
+		"uptime":         "7d 14h 32m",
 		"services": map[string]interface{}{
 			"control_plane": map[string]interface{}{
-				"status": "healthy",
-				"uptime": "7d 14h 32m",
+				"status":  "healthy",
+				"uptime":  "7d 14h 32m",
 				"version": "1.0.0",
 				"endpoints": []string{
 					"http://localhost:8080/api/v1",
 				},
 			},
 			"workers": map[string]interface{}{
-				"status": "healthy",
+				"status":       "healthy",
 				"active_count": 5,
-				"total_count": 5,
-				"avg_cpu": 45.2,
-				"avg_memory": 62.8,
+				"total_count":  5,
+				"avg_cpu":      45.2,
+				"avg_memory":   62.8,
 			},
 			"database": map[string]interface{}{
-				"status": "healthy",
-				"type": "postgresql",
-				"connections": 12,
+				"status":          "healthy",
+				"type":            "postgresql",
+				"connections":     12,
 				"max_connections": 100,
 			},
 			"clickhouse": map[string]interface{}{
-				"status": "healthy",
-				"type": "clickhouse",
+				"status":     "healthy",
+				"type":       "clickhouse",
 				"disk_usage": 15.6,
 				"query_rate": 125.3,
 			},
 			"redis": map[string]interface{}{
-				"status": "healthy",
-				"memory_usage": 234.5,
+				"status":            "healthy",
+				"memory_usage":      234.5,
 				"connected_clients": 8,
 			},
 			"nats": map[string]interface{}{
-				"status": "healthy",
+				"status":           "healthy",
 				"messages_per_sec": 45.2,
-				"connections": 15,
+				"connections":      15,
 			},
 		},
 		"metrics": map[string]interface{}{
 			"workflows": map[string]interface{}{
 				"total_runs_24h": 1247,
-				"success_rate": 96.8,
-				"avg_duration": "2m 15s",
-				"active_runs": 23,
+				"success_rate":   96.8,
+				"avg_duration":   "2m 15s",
+				"active_runs":    23,
 			},
 			"costs": map[string]interface{}{
-				"total_24h": 125.50,
-				"avg_per_run": 0.85,
+				"total_24h":          125.50,
+				"avg_per_run":        0.85,
 				"budget_utilization": 65.2,
 			},
 			"performance": map[string]interface{}{
-				"avg_latency": "1.2s",
-				"p95_latency": "3.8s",
-				"error_rate": 0.8,
+				"avg_latency":    "1.2s",
+				"p95_latency":    "3.8s",
+				"error_rate":     0.8,
 				"cache_hit_rate": 34.5,
 			},
 		},
 		"quotas": map[string]interface{}{
 			"openai": map[string]interface{}{
 				"current_qps": 15,
-				"limit_qps": 100,
+				"limit_qps":   100,
 				"utilization": 15.0,
-				"status": "healthy",
+				"status":      "healthy",
 			},
 			"anthropic": map[string]interface{}{
 				"current_qps": 8,
-				"limit_qps": 50,
+				"limit_qps":   50,
 				"utilization": 16.0,
-				"status": "healthy",
+				"status":      "healthy",
 			},
 			"google": map[string]interface{}{
 				"current_qps": 5,
-				"limit_qps": 75,
+				"limit_qps":   75,
 				"utilization": 6.7,
-				"status": "healthy",
+				"status":      "healthy",
 			},
 		},
 		"alerts": []map[string]interface{}{
 			{
-				"severity": "warning",
-				"message": "Cache hit rate below optimal (34.5%)",
+				"severity":  "warning",
+				"message":   "Cache hit rate below optimal (34.5%)",
 				"timestamp": time.Now().Add(-15 * time.Minute).Format(time.RFC3339),
 			},
 		},
@@ -142,12 +142,12 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nService Status:")
 		fmt.Println("---------------")
 		services := status["services"].(map[string]interface{})
-		
+
 		for serviceName, serviceData := range services {
 			service := serviceData.(map[string]interface{})
 			serviceStatus := service["status"].(string)
 			fmt.Printf("%-15s: %s", serviceName, getStatusIcon(serviceStatus))
-			
+
 			// Add service-specific details
 			switch serviceName {
 			case "control_plane":
@@ -171,16 +171,16 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nSystem Metrics:")
 		fmt.Println("---------------")
 		metrics := status["metrics"].(map[string]interface{})
-		
+
 		workflows := metrics["workflows"].(map[string]interface{})
 		fmt.Printf("Workflows (24h): %d runs, %.1f%% success rate, %s avg duration\n",
 			workflows["total_runs_24h"], workflows["success_rate"], workflows["avg_duration"])
 		fmt.Printf("Active runs: %d\n", workflows["active_runs"])
-		
+
 		costs := metrics["costs"].(map[string]interface{})
 		fmt.Printf("Costs (24h): $%.2f total, $%.2f avg/run, %.1f%% budget used\n",
 			costs["total_24h"], costs["avg_per_run"], costs["budget_utilization"])
-		
+
 		performance := metrics["performance"].(map[string]interface{})
 		fmt.Printf("Performance: %s avg latency, %s P95, %.1f%% error rate\n",
 			performance["avg_latency"], performance["p95_latency"], performance["error_rate"])
@@ -191,10 +191,10 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nProvider Quotas:")
 		fmt.Println("----------------")
 		quotas := status["quotas"].(map[string]interface{})
-		
+
 		fmt.Printf("%-12s %-10s %-10s %-12s %-8s\n", "PROVIDER", "CURRENT", "LIMIT", "UTILIZATION", "STATUS")
 		fmt.Println("----------------------------------------------------------")
-		
+
 		for provider, quotaData := range quotas {
 			quota := quotaData.(map[string]interface{})
 			fmt.Printf("%-12s %-10d %-10d %-12.1f%% %s\n",
@@ -216,7 +216,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			severity := alert["severity"].(string)
 			message := alert["message"].(string)
 			timestamp, _ := time.Parse(time.RFC3339, alert["timestamp"].(string))
-			
+
 			icon := "ℹ"
 			switch severity {
 			case "critical":
@@ -226,9 +226,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			case "info":
 				icon = "ℹ️"
 			}
-			
-			fmt.Printf("%s [%s] %s (%s ago)\n", 
-				icon, severity, message, 
+
+			fmt.Printf("%s [%s] %s (%s ago)\n",
+				icon, severity, message,
 				time.Since(timestamp).Truncate(time.Minute))
 		}
 	}
@@ -236,30 +236,30 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	// Show recommendations
 	fmt.Println("\nRecommendations:")
 	fmt.Println("----------------")
-	
+
 	// Generate recommendations based on status
 	recommendations := []string{}
-	
+
 	metrics := status["metrics"].(map[string]interface{})
 	performance := metrics["performance"].(map[string]interface{})
-	
+
 	if performance["cache_hit_rate"].(float64) < 40 {
 		recommendations = append(recommendations, "• Consider optimizing caching strategy to improve hit rate")
 	}
-	
+
 	if performance["error_rate"].(float64) > 1.0 {
 		recommendations = append(recommendations, "• Investigate error rate - consider adding retry logic")
 	}
-	
+
 	costs := metrics["costs"].(map[string]interface{})
 	if costs["budget_utilization"].(float64) > 80 {
 		recommendations = append(recommendations, "• Budget utilization is high - consider cost optimization")
 	}
-	
+
 	if len(recommendations) == 0 {
 		recommendations = append(recommendations, "• System is running optimally")
 	}
-	
+
 	for _, rec := range recommendations {
 		fmt.Println(rec)
 	}

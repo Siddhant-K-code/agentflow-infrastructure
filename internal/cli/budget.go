@@ -85,7 +85,7 @@ func init() {
 
 func runBudgetCreate(cmd *cobra.Command, args []string) error {
 	amountStr := args[0]
-	
+
 	// Parse amount (support $100, 100, 10000 cents)
 	var amountCents int64
 	if amountStr[0] == '$' {
@@ -122,14 +122,14 @@ func runBudgetCreate(cmd *cobra.Command, args []string) error {
 
 	// Mock budget creation
 	budgetID := fmt.Sprintf("budget_%d", time.Now().Unix())
-	
+
 	fmt.Printf("\nBudget created successfully!\n")
 	fmt.Printf("Budget ID: %s\n", budgetID)
-	
+
 	// Calculate period dates
 	now := time.Now()
 	var startDate, endDate time.Time
-	
+
 	switch period {
 	case "daily":
 		startDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -146,7 +146,7 @@ func runBudgetCreate(cmd *cobra.Command, args []string) error {
 		startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 		endDate = startDate.AddDate(0, 1, 0)
 	}
-	
+
 	fmt.Printf("Period: %s to %s\n", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 
 	return nil
@@ -203,7 +203,7 @@ func runBudgetList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Print table header
-	fmt.Printf("%-20s %-8s %-10s %-10s %-10s %-12s %-10s\n", 
+	fmt.Printf("%-20s %-8s %-10s %-10s %-10s %-12s %-10s\n",
 		"BUDGET ID", "PERIOD", "LIMIT", "SPENT", "REMAINING", "UTILIZATION", "STATUS")
 	fmt.Println("-------------------------------------------------------------------------------------")
 
@@ -253,15 +253,15 @@ func runBudgetStatus(cmd *cobra.Command, args []string) error {
 	// Mock current budget status
 	status := map[string]interface{}{
 		"current_budget": map[string]interface{}{
-			"id":          "budget_1234567890",
-			"period":      "monthly",
-			"limit_cents": 50000,
-			"spent_cents": 32500,
+			"id":              "budget_1234567890",
+			"period":          "monthly",
+			"limit_cents":     50000,
+			"spent_cents":     32500,
 			"remaining_cents": 17500,
 			"utilization_pct": 65.0,
-			"status":      "healthy",
-			"period_start": "2024-01-01T00:00:00Z",
-			"period_end":   "2024-02-01T00:00:00Z",
+			"status":          "healthy",
+			"period_start":    "2024-01-01T00:00:00Z",
+			"period_end":      "2024-02-01T00:00:00Z",
 		},
 		"daily_spending": []map[string]interface{}{
 			{"date": "2024-01-13", "spent_cents": 1200},
@@ -275,8 +275,8 @@ func runBudgetStatus(cmd *cobra.Command, args []string) error {
 		},
 		"alerts": []map[string]interface{}{
 			{
-				"type":    "approaching_limit",
-				"message": "Budget is 65% utilized",
+				"type":     "approaching_limit",
+				"message":  "Budget is 65% utilized",
 				"severity": "info",
 			},
 		},
@@ -290,7 +290,7 @@ func runBudgetStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println(string(outputBytes))
 	} else {
 		budget := status["current_budget"].(map[string]interface{})
-		
+
 		fmt.Println("Current Budget Status:")
 		fmt.Println("======================")
 		fmt.Printf("Budget ID: %s\n", budget["id"])
@@ -310,8 +310,8 @@ func runBudgetStatus(cmd *cobra.Command, args []string) error {
 		fmt.Println("\nTop Spending Categories:")
 		topSpenders := status["top_spenders"].([]map[string]interface{})
 		for _, spender := range topSpenders {
-			fmt.Printf("  %-12s: $%-8.2f (%.1f%%)\n", 
-				spender["category"], 
+			fmt.Printf("  %-12s: $%-8.2f (%.1f%%)\n",
+				spender["category"],
 				float64(spender["spent_cents"].(int))/100,
 				spender["percentage"])
 		}
@@ -366,7 +366,7 @@ func runBudgetDelete(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Deleting budget: %s\n", budgetID)
 	fmt.Printf("Are you sure? This action cannot be undone. (y/N): ")
-	
+
 	// In a real implementation, would wait for user input
 	fmt.Printf("y\n")
 	fmt.Printf("Budget deleted successfully!\n")

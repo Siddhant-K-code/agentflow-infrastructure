@@ -155,9 +155,9 @@ func TestStepExecution(t *testing.T) {
 func TestTaskExecution(t *testing.T) {
 	t.Run("TaskCreation", func(t *testing.T) {
 		task := &Task{
-			ID:     uuid.New(),
-			RunID:  uuid.New(),
-			NodeID: "test_node",
+			ID:      uuid.New(),
+			RunID:   uuid.New(),
+			NodeID:  "test_node",
 			Attempt: 1,
 			Node: &Node{
 				ID:   "test_node",
@@ -252,7 +252,7 @@ func BenchmarkDAGValidation(b *testing.B) {
 		for _, step := range dag.Steps {
 			stepMap[step.ID] = true
 		}
-		
+
 		for _, edge := range dag.Edges {
 			_ = stepMap[edge.From] && stepMap[edge.To]
 		}

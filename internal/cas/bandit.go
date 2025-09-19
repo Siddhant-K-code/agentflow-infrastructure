@@ -39,7 +39,7 @@ func (mab *MultiArmedBandit) SelectProvider(ctx context.Context, scoredProviders
 	}
 
 	totalPulls := mab.getTotalPulls()
-	
+
 	// If we haven't tried all arms yet, try untried ones first
 	for _, provider := range scoredProviders {
 		key := mab.getProviderKey(provider.Provider)
@@ -56,7 +56,7 @@ func (mab *MultiArmedBandit) SelectProvider(ctx context.Context, scoredProviders
 	for _, provider := range scoredProviders {
 		key := mab.getProviderKey(provider.Provider)
 		arm := mab.arms[key]
-		
+
 		if arm.Pulls == 0 {
 			// Untried arm gets highest priority
 			return provider
@@ -64,10 +64,10 @@ func (mab *MultiArmedBandit) SelectProvider(ctx context.Context, scoredProviders
 
 		// Calculate UCB value
 		ucb := arm.AverageReward + mab.c*math.Sqrt(math.Log(float64(totalPulls))/float64(arm.Pulls))
-		
+
 		// Add base score from routing algorithm
 		ucb += provider.Score * 0.3 // Weight the routing score
-		
+
 		if ucb > bestUCB {
 			bestUCB = ucb
 			bestProvider = provider
@@ -228,7 +228,7 @@ func (eg *EpsilonGreedy) SelectProvider(ctx context.Context, scoredProviders []S
 	for _, provider := range scoredProviders {
 		key := provider.Provider.ProviderName + ":" + provider.Provider.ModelName
 		arm, exists := eg.arms[key]
-		
+
 		reward := provider.Score // Use routing score as baseline
 		if exists && arm.Pulls > 0 {
 			reward = arm.AverageReward

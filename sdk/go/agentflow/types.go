@@ -9,18 +9,18 @@ import (
 // Workflow types
 
 type WorkflowRun struct {
-	ID             uuid.UUID              `json:"id"`
-	WorkflowName   string                 `json:"workflow_name"`
-	Version        int                    `json:"version"`
-	Status         string                 `json:"status"`
-	StartedAt      *time.Time             `json:"started_at,omitempty"`
-	EndedAt        *time.Time             `json:"ended_at,omitempty"`
-	CostCents      int64                  `json:"cost_cents"`
-	Inputs         map[string]interface{} `json:"inputs"`
-	Outputs        map[string]interface{} `json:"outputs,omitempty"`
-	Error          string                 `json:"error,omitempty"`
-	Tags           map[string]string      `json:"tags,omitempty"`
-	CreatedAt      time.Time              `json:"created_at"`
+	ID           uuid.UUID              `json:"id"`
+	WorkflowName string                 `json:"workflow_name"`
+	Version      int                    `json:"version"`
+	Status       string                 `json:"status"`
+	StartedAt    *time.Time             `json:"started_at,omitempty"`
+	EndedAt      *time.Time             `json:"ended_at,omitempty"`
+	CostCents    int64                  `json:"cost_cents"`
+	Inputs       map[string]interface{} `json:"inputs"`
+	Outputs      map[string]interface{} `json:"outputs,omitempty"`
+	Error        string                 `json:"error,omitempty"`
+	Tags         map[string]string      `json:"tags,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
 }
 
 type SubmitWorkflowRequest struct {
@@ -81,13 +81,13 @@ type ResolvePromptResponse struct {
 }
 
 type PromptDeployment struct {
-	ID            uuid.UUID  `json:"id"`
-	PromptName    string     `json:"prompt_name"`
-	StableVersion int        `json:"stable_version"`
-	CanaryVersion *int       `json:"canary_version,omitempty"`
-	CanaryRatio   float64    `json:"canary_ratio"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID            uuid.UUID `json:"id"`
+	PromptName    string    `json:"prompt_name"`
+	StableVersion int       `json:"stable_version"`
+	CanaryVersion *int      `json:"canary_version,omitempty"`
+	CanaryRatio   float64   `json:"canary_ratio"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type DeployPromptRequest struct {
@@ -121,14 +121,14 @@ type TraceResponse struct {
 }
 
 type TraceSummary struct {
-	TotalEvents       int64                `json:"total_events"`
-	TotalCost         int64                `json:"total_cost_cents"`
-	TotalTokens       int64                `json:"total_tokens"`
-	AverageLatency    time.Duration        `json:"average_latency"`
-	SuccessRate       float64              `json:"success_rate"`
-	ErrorCount        int64                `json:"error_count"`
-	ProviderBreakdown map[string]int64     `json:"provider_breakdown"`
-	ModelBreakdown    map[string]int64     `json:"model_breakdown"`
+	TotalEvents       int64            `json:"total_events"`
+	TotalCost         int64            `json:"total_cost_cents"`
+	TotalTokens       int64            `json:"total_tokens"`
+	AverageLatency    time.Duration    `json:"average_latency"`
+	SuccessRate       float64          `json:"success_rate"`
+	ErrorCount        int64            `json:"error_count"`
+	ProviderBreakdown map[string]int64 `json:"provider_breakdown"`
+	ModelBreakdown    map[string]int64 `json:"model_breakdown"`
 }
 
 type TraceQueryRequest struct {
@@ -178,13 +178,13 @@ type ReplaySummary struct {
 // Budget types
 
 type Budget struct {
-	ID          uuid.UUID  `json:"id"`
-	PeriodType  string     `json:"period_type"`
-	LimitCents  int64      `json:"limit_cents"`
-	SpentCents  int64      `json:"spent_cents"`
-	PeriodStart time.Time  `json:"period_start"`
-	PeriodEnd   time.Time  `json:"period_end"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID          uuid.UUID `json:"id"`
+	PeriodType  string    `json:"period_type"`
+	LimitCents  int64     `json:"limit_cents"`
+	SpentCents  int64     `json:"spent_cents"`
+	PeriodStart time.Time `json:"period_start"`
+	PeriodEnd   time.Time `json:"period_end"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type CreateBudgetRequest struct {

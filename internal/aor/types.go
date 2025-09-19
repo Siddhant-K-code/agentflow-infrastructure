@@ -1,10 +1,9 @@
 package aor
 
 import (
-	"github.com/google/uuid"
 	"context"
+	"github.com/google/uuid"
 	"time"
-
 )
 
 // WorkflowSpec defines a DAG workflow
@@ -95,20 +94,20 @@ type StepRun struct {
 
 // Task represents a unit of work
 type Task struct {
-	ID         uuid.UUID              `json:"id"`
-	RunID      uuid.UUID              `json:"run_id"`
-	StepID     string                 `json:"step_id"`
-	NodeID     string                 `json:"node_id"`
-	Type       string                 `json:"type"`
-	Input      map[string]interface{} `json:"input"`
-	Inputs     map[string]interface{} `json:"inputs"`
-	Config     map[string]interface{} `json:"config"`
-	Node       *Node                  `json:"node,omitempty"`
-	Attempt    int                    `json:"attempt"`
-	Priority   int                    `json:"priority"`
-	CreatedAt  time.Time              `json:"created_at"`
-	ScheduledAt time.Time             `json:"scheduled_at"`
-	DeadlineAt *time.Time             `json:"deadline_at,omitempty"`
+	ID          uuid.UUID              `json:"id"`
+	RunID       uuid.UUID              `json:"run_id"`
+	StepID      string                 `json:"step_id"`
+	NodeID      string                 `json:"node_id"`
+	Type        string                 `json:"type"`
+	Input       map[string]interface{} `json:"input"`
+	Inputs      map[string]interface{} `json:"inputs"`
+	Config      map[string]interface{} `json:"config"`
+	Node        *Node                  `json:"node,omitempty"`
+	Attempt     int                    `json:"attempt"`
+	Priority    int                    `json:"priority"`
+	CreatedAt   time.Time              `json:"created_at"`
+	ScheduledAt time.Time              `json:"scheduled_at"`
+	DeadlineAt  *time.Time             `json:"deadline_at,omitempty"`
 }
 
 // TaskResult represents the result of task execution

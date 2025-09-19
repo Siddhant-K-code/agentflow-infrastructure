@@ -9,12 +9,12 @@ import (
 )
 
 type EventCollector struct {
-	clickhouse *db.ClickHouseDB
-	batchSize  int
+	clickhouse    *db.ClickHouseDB
+	batchSize     int
 	flushInterval time.Duration
-	eventBuffer []TraceEvent
-	bufferChan chan TraceEvent
-	flushChan  chan struct{}
+	eventBuffer   []TraceEvent
+	bufferChan    chan TraceEvent
+	flushChan     chan struct{}
 }
 
 func NewEventCollector(ch *db.ClickHouseDB) *EventCollector {
@@ -87,7 +87,7 @@ func (ec *EventCollector) processBatches() {
 		select {
 		case event := <-ec.bufferChan:
 			ec.eventBuffer = append(ec.eventBuffer, event)
-			
+
 			// Flush if buffer is full
 			if len(ec.eventBuffer) >= ec.batchSize {
 				ec.flush()
@@ -214,7 +214,7 @@ func marshalPayload(payload map[string]interface{}) (string, error) {
 func (ec *EventCollector) Shutdown(ctx context.Context) error {
 	// Flush remaining events
 	ec.triggerFlush()
-	
+
 	// Wait for flush to complete or timeout
 	select {
 	case <-time.After(10 * time.Second):

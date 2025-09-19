@@ -90,7 +90,7 @@ func (wb *WorkflowBuilder) Map(id, iterateOver string, subWorkflow *WorkflowBuil
 		"nodes": subWorkflow.nodes,
 		"edges": subWorkflow.edges,
 	}
-	
+
 	return wb.addNode(id, "map", map[string]interface{}{
 		"iterate_over": iterateOver,
 		"sub_dag":      subDAG,
@@ -376,19 +376,19 @@ func ExampleDocumentAnalysis() *WorkflowBuilder {
 			"chunk_size": 1000,
 			"overlap":    100,
 		}).WithInputs(map[string]string{
-			"content": "ingest.output",
-		}).DependsOn("ingest").
+		"content": "ingest.output",
+	}).DependsOn("ingest").
 		LLM("analyze", "document_analyzer@3", map[string]interface{}{}).
 		WithQuality("Gold").
-		WithSLA(30 * time.Second).
+		WithSLA(30*time.Second).
 		WithInputs(map[string]string{
 			"chunks": "chunk.output",
 		}).DependsOn("chunk").
 		Function("summarize", "text_summarizer", map[string]interface{}{
 			"max_length": 500,
 		}).WithInputs(map[string]string{
-			"analysis": "analyze.output",
-		}).DependsOn("analyze").End()
+		"analysis": "analyze.output",
+	}).DependsOn("analyze").End()
 }
 
 // ExampleMapReduce creates an example map-reduce workflow
@@ -408,6 +408,6 @@ func ExampleMapReduce() *WorkflowBuilder {
 		Reduce("aggregate", "result_aggregator", map[string]interface{}{
 			"operation": "sum",
 		}).WithInputs(map[string]string{
-			"results": "process_items.output",
-		}).DependsOn("process_items").End()
+		"results": "process_items.output",
+	}).DependsOn("process_items").End()
 }

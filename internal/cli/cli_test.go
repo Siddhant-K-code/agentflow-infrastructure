@@ -49,7 +49,7 @@ func TestRootCommand(t *testing.T) {
 		cmd := NewRootCommand()
 		output := captureOutput(func() {
 			cmd.SetArgs([]string{"--help"})
-			cmd.Execute()
+			_ = cmd.Execute() // Ignore error for help command
 		})
 
 		assert.Contains(t, output, "agentflow")
@@ -160,90 +160,20 @@ func TestPromptCommands(t *testing.T) {
 }
 
 func TestTraceCommands(t *testing.T) {
-	t.Run("TraceListCommand", func(t *testing.T) {
-		cmd := NewTraceCommand()
-		listCmd := findSubcommand(cmd, "list")
-		require.NotNil(t, listCmd)
-
-		assert.Equal(t, "list", listCmd.Use)
-		assert.NotEmpty(t, listCmd.Short)
-
-		// Test optional flags
-		flags := []string{"org-id", "workflow-id", "limit"}
-		for _, flag := range flags {
-			assert.NotNil(t, listCmd.Flags().Lookup(flag))
-		}
-	})
-
-	t.Run("TraceGetCommand", func(t *testing.T) {
-		cmd := NewTraceCommand()
-		getCmd := findSubcommand(cmd, "get")
-		require.NotNil(t, getCmd)
-
-		assert.Equal(t, "get", getCmd.Use)
-		assert.NotEmpty(t, getCmd.Short)
-	})
-
-	t.Run("TraceReplayCommand", func(t *testing.T) {
-		cmd := NewTraceCommand()
-		replayCmd := findSubcommand(cmd, "replay")
-		require.NotNil(t, replayCmd)
-
-		assert.Equal(t, "replay", replayCmd.Use)
-		assert.NotEmpty(t, replayCmd.Short)
-	})
-
-	t.Run("TraceAnalyzeCommand", func(t *testing.T) {
-		cmd := NewTraceCommand()
-		analyzeCmd := findSubcommand(cmd, "analyze")
-		require.NotNil(t, analyzeCmd)
-
-		assert.Equal(t, "analyze", analyzeCmd.Use)
-		assert.NotEmpty(t, analyzeCmd.Short)
+	testCommandStructure(t, "Trace", NewTraceCommand, map[string][]string{
+		"list":    {"org-id", "workflow-id", "limit"},
+		"get":     {},
+		"replay":  {},
+		"analyze": {},
 	})
 }
 
 func TestBudgetCommands(t *testing.T) {
-	t.Run("BudgetCreateCommand", func(t *testing.T) {
-		cmd := NewBudgetCommand()
-		createCmd := findSubcommand(cmd, "create")
-		require.NotNil(t, createCmd)
-
-		assert.Equal(t, "create", createCmd.Use)
-		assert.NotEmpty(t, createCmd.Short)
-
-		// Test required flags
-		flags := []string{"org-id", "limit", "period"}
-		for _, flag := range flags {
-			assert.NotNil(t, createCmd.Flags().Lookup(flag))
-		}
-	})
-
-	t.Run("BudgetListCommand", func(t *testing.T) {
-		cmd := NewBudgetCommand()
-		listCmd := findSubcommand(cmd, "list")
-		require.NotNil(t, listCmd)
-
-		assert.Equal(t, "list", listCmd.Use)
-		assert.NotEmpty(t, listCmd.Short)
-	})
-
-	t.Run("BudgetStatusCommand", func(t *testing.T) {
-		cmd := NewBudgetCommand()
-		statusCmd := findSubcommand(cmd, "status")
-		require.NotNil(t, statusCmd)
-
-		assert.Equal(t, "status", statusCmd.Use)
-		assert.NotEmpty(t, statusCmd.Short)
-	})
-
-	t.Run("BudgetOptimizeCommand", func(t *testing.T) {
-		cmd := NewBudgetCommand()
-		optimizeCmd := findSubcommand(cmd, "optimize")
-		require.NotNil(t, optimizeCmd)
-
-		assert.Equal(t, "optimize", optimizeCmd.Use)
-		assert.NotEmpty(t, optimizeCmd.Short)
+	testCommandStructure(t, "Budget", NewBudgetCommand, map[string][]string{
+		"create":   {"org-id", "limit", "period"},
+		"list":     {},
+		"status":   {},
+		"optimize": {},
 	})
 }
 
@@ -299,12 +229,12 @@ func TestFlagValidation(t *testing.T) {
 
 		// Test missing required flag - cobra should handle this automatically
 		cmd.SetArgs([]string{"submit"}) // Call submit with no flags
-		
+
 		// Capture output to avoid printing to console
 		var buf bytes.Buffer
 		cmd.SetOut(&buf)
 		cmd.SetErr(&buf)
-		
+
 		err := cmd.Execute()
 		assert.Error(t, err)
 	})
@@ -431,6 +361,26 @@ func findSubcommand(parent *cobra.Command, name string) *cobra.Command {
 	return nil
 }
 
+// testCommandStructure is a helper to reduce code duplication in command tests
+func testCommandStructure(t *testing.T, prefix string, cmdFactory func() *cobra.Command, subcommands map[string][]string) {
+	for cmdName, flags := range subcommands {
+		testName := prefix + strings.ToUpper(cmdName[:1]) + cmdName[1:] + "Command"
+		t.Run(testName, func(t *testing.T) {
+			cmd := cmdFactory()
+			subCmd := findSubcommand(cmd, cmdName)
+			require.NotNil(t, subCmd)
+
+			assert.Equal(t, cmdName, subCmd.Use)
+			assert.NotEmpty(t, subCmd.Short)
+
+			// Test flags if specified
+			for _, flag := range flags {
+				assert.NotNil(t, subCmd.Flags().Lookup(flag))
+			}
+		})
+	}
+}
+
 func captureOutput(fn func()) string {
 	old := os.Stdout
 	r, w, _ := os.Pipe()
@@ -442,7 +392,7 @@ func captureOutput(fn func()) string {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r) // Ignore copy error in test helper
 	return buf.String()
 }
 
@@ -529,8 +479,8 @@ func NewWorkflowCommand() *cobra.Command {
 	}
 	submitCmd.Flags().String("file", "", "Workflow definition file")
 	submitCmd.Flags().String("org-id", "", "Organization ID")
-	submitCmd.MarkFlagRequired("file")
-	submitCmd.MarkFlagRequired("org-id")
+	_ = submitCmd.MarkFlagRequired("file")
+	_ = submitCmd.MarkFlagRequired("org-id")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
@@ -579,9 +529,9 @@ func NewPromptCommand() *cobra.Command {
 	createCmd.Flags().String("name", "", "Prompt name")
 	createCmd.Flags().String("template", "", "Prompt template")
 	createCmd.Flags().String("org-id", "", "Organization ID")
-	createCmd.MarkFlagRequired("name")
-	createCmd.MarkFlagRequired("template")
-	createCmd.MarkFlagRequired("org-id")
+	_ = createCmd.MarkFlagRequired("name")
+	_ = createCmd.MarkFlagRequired("template")
+	_ = createCmd.MarkFlagRequired("org-id")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
@@ -601,9 +551,9 @@ func NewPromptCommand() *cobra.Command {
 	deployCmd.Flags().String("name", "", "Prompt name")
 	deployCmd.Flags().Int("version", 0, "Version to deploy")
 	deployCmd.Flags().String("org-id", "", "Organization ID")
-	deployCmd.MarkFlagRequired("name")
-	deployCmd.MarkFlagRequired("version")
-	deployCmd.MarkFlagRequired("org-id")
+	_ = deployCmd.MarkFlagRequired("name")
+	_ = deployCmd.MarkFlagRequired("version")
+	_ = deployCmd.MarkFlagRequired("org-id")
 
 	evaluateCmd := &cobra.Command{
 		Use:   "evaluate",
@@ -678,9 +628,9 @@ func NewBudgetCommand() *cobra.Command {
 	createCmd.Flags().String("org-id", "", "Organization ID")
 	createCmd.Flags().Int64("limit", 0, "Budget limit in cents")
 	createCmd.Flags().String("period", "", "Budget period (daily, weekly, monthly)")
-	createCmd.MarkFlagRequired("org-id")
-	createCmd.MarkFlagRequired("limit")
-	createCmd.MarkFlagRequired("period")
+	_ = createCmd.MarkFlagRequired("org-id")
+	_ = createCmd.MarkFlagRequired("limit")
+	_ = createCmd.MarkFlagRequired("period")
 
 	listCmd := &cobra.Command{
 		Use:   "list",

@@ -76,7 +76,7 @@ func (m *Monitor) handleResult(msg *nats.Msg) {
 	}
 
 	log.Printf("Received result for task %s: %s", result.TaskID, result.Status)
-	
+
 	// Results are already processed by the scheduler
 	// This is mainly for monitoring and metrics
 	_ = msg.Ack() // Ignore error for monitoring ack
@@ -91,11 +91,11 @@ func (m *Monitor) handleHeartbeat(msg *nats.Msg) {
 
 	workerID, _ := heartbeat["worker_id"].(string)
 	log.Printf("Received heartbeat from worker %s", workerID)
-	
+
 	// Store worker status in Redis for health monitoring
 	key := "worker:" + workerID
 	m.cp.redis.Set(context.Background(), key, string(msg.Data), 2*time.Minute)
-	
+
 	_ = msg.Ack() // Ignore error for heartbeat ack
 }
 
@@ -139,7 +139,7 @@ func (m *Monitor) checkStuckTasks(ctx context.Context) {
 			continue
 		}
 
-		log.Printf("Found stuck task: step=%s, run=%s, node=%s, started=%v", 
+		log.Printf("Found stuck task: step=%s, run=%s, node=%s, started=%v",
 			stepID, runID, nodeID, startedAt)
 
 		// Could implement automatic retry or cancellation here

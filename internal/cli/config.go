@@ -73,7 +73,7 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 	value := args[1]
 
 	viper.Set(key, value)
-	
+
 	if err := writeConfig(); err != nil {
 		return fmt.Errorf("failed to write config: %w", err)
 	}
@@ -85,13 +85,13 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 func runConfigGet(cmd *cobra.Command, args []string) error {
 	key := args[0]
 	value := viper.GetString(key)
-	
+
 	if value == "" {
 		fmt.Printf("%s is not set\n", key)
 	} else {
 		fmt.Printf("%s = %s\n", key, value)
 	}
-	
+
 	return nil
 }
 
@@ -163,7 +163,7 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 	if _, err := os.Stat(configPath); err == nil {
 		fmt.Printf("Configuration file already exists at %s\n", configPath)
 		fmt.Print("Overwrite? (y/N): ")
-		
+
 		// In a real implementation, would read user input
 		fmt.Println("N")
 		fmt.Println("Configuration initialization cancelled.")
@@ -229,7 +229,7 @@ func runConfigLogin(cmd *cobra.Command, args []string) error {
 	// Save credentials
 	viper.Set("token", token)
 	viper.Set("endpoint", endpoint)
-	
+
 	if org != "" {
 		viper.Set("org", org)
 	}
@@ -239,7 +239,7 @@ func runConfigLogin(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("Credentials saved.")
-	
+
 	if org != "" {
 		fmt.Printf("Organization: %s\n", org)
 	} else {
@@ -254,7 +254,7 @@ func runConfigLogout(cmd *cobra.Command, args []string) error {
 
 	// Remove sensitive data
 	viper.Set("token", "")
-	
+
 	if err := writeConfig(); err != nil {
 		return fmt.Errorf("failed to update config: %w", err)
 	}

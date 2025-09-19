@@ -1,12 +1,12 @@
 package scl
 
 import (
-	"github.com/google/uuid"
 	"context"
-	"encoding/json"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
@@ -36,7 +36,7 @@ func NewService(cfg *config.Config, database *db.PostgresDB) *Service {
 // IngestContext processes and validates untrusted context
 func (s *Service) IngestContext(ctx context.Context, orgID uuid.UUID, req *IngestRequest) (*IngestResponse, error) {
 	start := time.Now()
-	
+
 	response := &IngestResponse{
 		BundleID: uuid.New(),
 		Status:   StatusPassed,
@@ -51,9 +51,9 @@ func (s *Service) IngestContext(ctx context.Context, orgID uuid.UUID, req *Inges
 		TrustScore:   0.5, // Default trust score
 		RedactionMap: make(map[string]string),
 		Provenance: Provenance{
-			Sources:     req.Sources,
-			Processing:  make([]ProcessingStep, 0),
-			Metadata:    req.Metadata,
+			Sources:    req.Sources,
+			Processing: make([]ProcessingStep, 0),
+			Metadata:   req.Metadata,
 		},
 		CreatedAt: time.Now(),
 	}

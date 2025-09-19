@@ -44,9 +44,9 @@ func init() {
 	rootCmd.PersistentFlags().String("token", "", "Authentication token")
 
 	// Bind flags to viper
-	viper.BindPFlag("endpoint", rootCmd.PersistentFlags().Lookup("endpoint"))
-	viper.BindPFlag("org", rootCmd.PersistentFlags().Lookup("org"))
-	viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("token"))
+	_ = viper.BindPFlag("endpoint", rootCmd.PersistentFlags().Lookup("endpoint"))
+	_ = viper.BindPFlag("org", rootCmd.PersistentFlags().Lookup("org"))
+	_ = viper.BindPFlag("token", rootCmd.PersistentFlags().Lookup("token"))
 
 	// Add subcommands
 	rootCmd.AddCommand(workflowCmd)

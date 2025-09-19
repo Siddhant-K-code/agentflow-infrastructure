@@ -1,10 +1,10 @@
 package aor
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"sync"
 	"time"
@@ -16,15 +16,15 @@ import (
 )
 
 type ControlPlane struct {
-	cfg      *config.Config
-	db       *db.PostgresDB
-	redis    *redis.Client
-	nats     *nats.Conn
-	js       nats.JetStreamContext
-	
+	cfg   *config.Config
+	db    *db.PostgresDB
+	redis *redis.Client
+	nats  *nats.Conn
+	js    nats.JetStreamContext
+
 	scheduler *Scheduler
 	monitor   *Monitor
-	
+
 	mu       sync.RWMutex
 	running  bool
 	shutdown chan struct{}
@@ -172,10 +172,10 @@ func (cp *ControlPlane) SubmitWorkflow(ctx context.Context, req *RunRequest) (*W
 func (cp *ControlPlane) GetWorkflowRun(ctx context.Context, runID uuid.UUID) (*WorkflowRun, error) {
 	query := `SELECT id, workflow_spec_id, status, started_at, ended_at, cost_cents, metadata, created_at 
 			  FROM workflow_run WHERE id = $1`
-	
+
 	var run WorkflowRun
 	var metadataJSON []byte
-	
+
 	err := cp.db.QueryRowContext(ctx, query, runID).Scan(
 		&run.ID, &run.WorkflowSpecID, &run.Status, &run.StartedAt, &run.EndedAt,
 		&run.CostCents, &metadataJSON, &run.CreatedAt,
@@ -194,7 +194,7 @@ func (cp *ControlPlane) GetWorkflowRun(ctx context.Context, runID uuid.UUID) (*W
 func (cp *ControlPlane) CancelWorkflowRun(ctx context.Context, runID uuid.UUID) error {
 	// Update run status
 	query := `UPDATE workflow_run SET status = 'canceled' WHERE id = $1 AND status IN ('queued', 'running')`
-	
+
 	result, err := cp.db.ExecContext(ctx, query, runID)
 	if err != nil {
 		return fmt.Errorf("failed to cancel workflow run: %w", err)
@@ -250,10 +250,10 @@ func (cp *ControlPlane) initStreams() error {
 func (cp *ControlPlane) getWorkflowSpec(ctx context.Context, name string, version int) (*WorkflowSpec, error) {
 	query := `SELECT id, org_id, name, version, dag, metadata 
 			  FROM workflow_spec WHERE name = $1 AND version = $2`
-	
+
 	var spec WorkflowSpec
 	var dagJSON, metadataJSON []byte
-	
+
 	err := cp.db.QueryRowContext(ctx, query, name, version).Scan(
 		&spec.ID, &spec.OrgID, &spec.Name, &spec.Version, &dagJSON, &metadataJSON,
 	)
@@ -280,7 +280,7 @@ func (cp *ControlPlane) saveWorkflowRun(ctx context.Context, run *WorkflowRun) e
 
 	query := `INSERT INTO workflow_run (id, workflow_spec_id, status, cost_cents, metadata, created_at)
 			  VALUES ($1, $2, $3, $4, $5, $6)`
-	
+
 	_, err = cp.db.ExecContext(ctx, query,
 		run.ID, run.WorkflowSpecID, run.Status, run.CostCents, metadataJSON, run.CreatedAt,
 	)

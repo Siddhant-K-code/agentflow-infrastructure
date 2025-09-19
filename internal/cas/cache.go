@@ -1,12 +1,12 @@
 package cas
 
 import (
-	"github.com/google/uuid"
 	"context"
-	"encoding/json"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -25,7 +25,7 @@ func NewCacheManager(redisClient *redis.Client) *CacheManager {
 // Get retrieves a cached response
 func (cm *CacheManager) Get(ctx context.Context, orgID uuid.UUID, promptHash, inputHash string) (*CacheResponse, error) {
 	key := cm.buildCacheKey(orgID, promptHash, inputHash)
-	
+
 	result, err := cm.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -61,7 +61,7 @@ func (cm *CacheManager) Put(ctx context.Context, orgID uuid.UUID, req *CacheRequ
 	}
 
 	key := cm.buildCacheKey(orgID, req.PromptHash, req.InputHash)
-	
+
 	// Check privacy level
 	if !cm.isPrivacyLevelAllowed(req.Policy.PrivacyLevel, orgID) {
 		return fmt.Errorf("privacy level %s not allowed for caching", req.Policy.PrivacyLevel)
@@ -100,7 +100,7 @@ func (cm *CacheManager) Delete(ctx context.Context, orgID uuid.UUID, promptHash,
 // Clear clears all cache entries for an organization
 func (cm *CacheManager) Clear(ctx context.Context, orgID uuid.UUID) error {
 	pattern := fmt.Sprintf("cache:%s:*", orgID.String())
-	
+
 	keys, err := cm.redis.Keys(ctx, pattern).Result()
 	if err != nil {
 		return fmt.Errorf("failed to get cache keys: %w", err)
@@ -119,7 +119,7 @@ func (cm *CacheManager) Clear(ctx context.Context, orgID uuid.UUID) error {
 // GetStats retrieves cache statistics
 func (cm *CacheManager) GetStats(ctx context.Context, orgID uuid.UUID) (*CacheStats, error) {
 	statsKey := fmt.Sprintf("cache_stats:%s", orgID.String())
-	
+
 	result, err := cm.redis.HGetAll(ctx, statsKey).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cache stats: %w", err)
@@ -226,7 +226,7 @@ func (cm *CacheManager) isPrivacyLevelAllowed(level PrivacyLevel, orgID uuid.UUI
 
 func (cm *CacheManager) updateCacheStats(ctx context.Context, orgID uuid.UUID, operation string) {
 	statsKey := fmt.Sprintf("cache_stats:%s", orgID.String())
-	
+
 	switch operation {
 	case "hit":
 		cm.redis.HIncrBy(ctx, statsKey, "hits", 1)
@@ -272,10 +272,10 @@ func (cw *CacheWarmer) WarmCache(ctx context.Context, orgID uuid.UUID, commonPro
 	for _, prompt := range commonPrompts {
 		// Generate mock response for warming
 		response := map[string]interface{}{
-			"text":         fmt.Sprintf("Warmed response for %s", prompt.Name),
-			"tokens":       prompt.EstimatedTokens,
-			"warmed":       true,
-			"warmed_at":    time.Now(),
+			"text":      fmt.Sprintf("Warmed response for %s", prompt.Name),
+			"tokens":    prompt.EstimatedTokens,
+			"warmed":    true,
+			"warmed_at": time.Now(),
 		}
 
 		req := &CacheRequest{
@@ -296,10 +296,10 @@ func (cw *CacheWarmer) WarmCache(ctx context.Context, orgID uuid.UUID, commonPro
 }
 
 type WarmupPrompt struct {
-	Name             string                 `json:"name"`
-	Hash             string                 `json:"hash"`
-	InputHash        string                 `json:"input_hash"`
-	EstimatedTokens  int                    `json:"estimated_tokens"`
-	TTL              time.Duration          `json:"ttl"`
-	Policy           CachePolicy            `json:"policy"`
+	Name            string        `json:"name"`
+	Hash            string        `json:"hash"`
+	InputHash       string        `json:"input_hash"`
+	EstimatedTokens int           `json:"estimated_tokens"`
+	TTL             time.Duration `json:"ttl"`
+	Policy          CachePolicy   `json:"policy"`
 }

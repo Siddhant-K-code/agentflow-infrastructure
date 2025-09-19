@@ -8,15 +8,15 @@ import (
 
 // Budget represents spending limits and controls
 type Budget struct {
-	ID          uuid.UUID   `json:"id" db:"id"`
-	OrgID       uuid.UUID   `json:"org_id" db:"org_id"`
-	ProjectID   *uuid.UUID  `json:"project_id" db:"project_id"`
-	PeriodType  PeriodType  `json:"period_type" db:"period_type"`
-	LimitCents  int64       `json:"limit_cents" db:"limit_cents"`
-	SpentCents  int64       `json:"spent_cents" db:"spent_cents"`
-	PeriodStart time.Time   `json:"period_start" db:"period_start"`
-	PeriodEnd   time.Time   `json:"period_end" db:"period_end"`
-	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
+	ID          uuid.UUID  `json:"id" db:"id"`
+	OrgID       uuid.UUID  `json:"org_id" db:"org_id"`
+	ProjectID   *uuid.UUID `json:"project_id" db:"project_id"`
+	PeriodType  PeriodType `json:"period_type" db:"period_type"`
+	LimitCents  int64      `json:"limit_cents" db:"limit_cents"`
+	SpentCents  int64      `json:"spent_cents" db:"spent_cents"`
+	PeriodStart time.Time  `json:"period_start" db:"period_start"`
+	PeriodEnd   time.Time  `json:"period_end" db:"period_end"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 }
 
 type PeriodType string
@@ -29,28 +29,28 @@ const (
 
 // ProviderConfig represents configuration for a model provider
 type ProviderConfig struct {
-	ID                    uuid.UUID              `json:"id" db:"id"`
-	OrgID                 uuid.UUID              `json:"org_id" db:"org_id"`
-	ProviderName          string                 `json:"provider_name" db:"provider_name"`
-	ModelName             string                 `json:"model_name" db:"model_name"`
-	Config                map[string]interface{} `json:"config" db:"config"`
-	CostPerTokenPrompt    float64                `json:"cost_per_token_prompt" db:"cost_per_token_prompt"`
-	CostPerTokenCompletion float64               `json:"cost_per_token_completion" db:"cost_per_token_completion"`
-	QPSLimit              int                    `json:"qps_limit" db:"qps_limit"`
-	Enabled               bool                   `json:"enabled" db:"enabled"`
-	CreatedAt             time.Time              `json:"created_at" db:"created_at"`
+	ID                     uuid.UUID              `json:"id" db:"id"`
+	OrgID                  uuid.UUID              `json:"org_id" db:"org_id"`
+	ProviderName           string                 `json:"provider_name" db:"provider_name"`
+	ModelName              string                 `json:"model_name" db:"model_name"`
+	Config                 map[string]interface{} `json:"config" db:"config"`
+	CostPerTokenPrompt     float64                `json:"cost_per_token_prompt" db:"cost_per_token_prompt"`
+	CostPerTokenCompletion float64                `json:"cost_per_token_completion" db:"cost_per_token_completion"`
+	QPSLimit               int                    `json:"qps_limit" db:"qps_limit"`
+	Enabled                bool                   `json:"enabled" db:"enabled"`
+	CreatedAt              time.Time              `json:"created_at" db:"created_at"`
 }
 
 // RoutingRequest represents a request for provider/model selection
 type RoutingRequest struct {
-	OrgID         uuid.UUID              `json:"org_id"`
-	QualityTier   QualityTier            `json:"quality_tier"`
-	PromptTokens  int                    `json:"prompt_tokens"`
-	MaxTokens     int                    `json:"max_tokens"`
-	LatencySLA    time.Duration          `json:"latency_sla,omitempty"`
-	BudgetCents   int64                  `json:"budget_cents,omitempty"`
-	Constraints   map[string]interface{} `json:"constraints,omitempty"`
-	Context       map[string]interface{} `json:"context,omitempty"`
+	OrgID        uuid.UUID              `json:"org_id"`
+	QualityTier  QualityTier            `json:"quality_tier"`
+	PromptTokens int                    `json:"prompt_tokens"`
+	MaxTokens    int                    `json:"max_tokens"`
+	LatencySLA   time.Duration          `json:"latency_sla,omitempty"`
+	BudgetCents  int64                  `json:"budget_cents,omitempty"`
+	Constraints  map[string]interface{} `json:"constraints,omitempty"`
+	Context      map[string]interface{} `json:"context,omitempty"`
 }
 
 type QualityTier string
@@ -93,10 +93,10 @@ type CacheRequest struct {
 }
 
 type CachePolicy struct {
-	Enabled       bool                   `json:"enabled"`
-	TTL           time.Duration          `json:"ttl"`
-	PrivacyLevel  PrivacyLevel           `json:"privacy_level"`
-	Conditions    map[string]interface{} `json:"conditions,omitempty"`
+	Enabled      bool                   `json:"enabled"`
+	TTL          time.Duration          `json:"ttl"`
+	PrivacyLevel PrivacyLevel           `json:"privacy_level"`
+	Conditions   map[string]interface{} `json:"conditions,omitempty"`
 }
 
 type PrivacyLevel string
@@ -130,35 +130,35 @@ type QuotaStatus struct {
 
 // BudgetStatus represents current budget usage
 type BudgetStatus struct {
-	BudgetID       uuid.UUID `json:"budget_id"`
-	LimitCents     int64     `json:"limit_cents"`
-	SpentCents     int64     `json:"spent_cents"`
-	RemainingCents int64     `json:"remaining_cents"`
-	UtilizationPct float64   `json:"utilization_pct"`
-	PeriodStart    time.Time `json:"period_start"`
-	PeriodEnd      time.Time `json:"period_end"`
+	BudgetID       uuid.UUID        `json:"budget_id"`
+	LimitCents     int64            `json:"limit_cents"`
+	SpentCents     int64            `json:"spent_cents"`
+	RemainingCents int64            `json:"remaining_cents"`
+	UtilizationPct float64          `json:"utilization_pct"`
+	PeriodStart    time.Time        `json:"period_start"`
+	PeriodEnd      time.Time        `json:"period_end"`
 	Status         BudgetStatusType `json:"status"`
 }
 
 type BudgetStatusType string
 
 const (
-	BudgetStatusHealthy   BudgetStatusType = "healthy"
-	BudgetStatusWarning   BudgetStatusType = "warning"
-	BudgetStatusCritical  BudgetStatusType = "critical"
-	BudgetStatusExceeded  BudgetStatusType = "exceeded"
+	BudgetStatusHealthy  BudgetStatusType = "healthy"
+	BudgetStatusWarning  BudgetStatusType = "warning"
+	BudgetStatusCritical BudgetStatusType = "critical"
+	BudgetStatusExceeded BudgetStatusType = "exceeded"
 )
 
 // OptimizationSuggestion represents a cost optimization recommendation
 type OptimizationSuggestion struct {
-	Type           OptimizationType       `json:"type"`
-	Title          string                 `json:"title"`
-	Description    string                 `json:"description"`
-	PotentialSaving int64                 `json:"potential_saving_cents"`
-	Confidence     float64                `json:"confidence"`
-	Impact         ImpactLevel            `json:"impact"`
-	Actions        []string               `json:"actions"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Type            OptimizationType       `json:"type"`
+	Title           string                 `json:"title"`
+	Description     string                 `json:"description"`
+	PotentialSaving int64                  `json:"potential_saving_cents"`
+	Confidence      float64                `json:"confidence"`
+	Impact          ImpactLevel            `json:"impact"`
+	Actions         []string               `json:"actions"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type OptimizationType string
@@ -213,10 +213,10 @@ type BatchPolicy struct {
 
 // BatchResponse represents the result of a batch operation
 type BatchResponse struct {
-	BatchID   string          `json:"batch_id"`
-	Results   []BatchResult   `json:"results"`
-	Summary   BatchSummary    `json:"summary"`
-	CreatedAt time.Time       `json:"created_at"`
+	BatchID   string        `json:"batch_id"`
+	Results   []BatchResult `json:"results"`
+	Summary   BatchSummary  `json:"summary"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type BatchResult struct {

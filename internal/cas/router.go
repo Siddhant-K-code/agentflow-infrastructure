@@ -1,15 +1,22 @@
 package cas
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"sort"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
 	"github.com/redis/go-redis/v9"
+)
+
+const (
+	providerOpenAI    = "openai"
+	providerAnthropic = "anthropic"
+	providerGoogle    = "google"
+	providerCohere    = "cohere"
 )
 
 type ProviderRouter struct {
@@ -190,7 +197,7 @@ func (pr *ProviderRouter) GetProviderMetrics(ctx context.Context, orgID uuid.UUI
 			ProviderName:     provider.ProviderName,
 			ModelName:        provider.ModelName,
 			AvgLatency:       pr.estimateLatency(ctx, provider),
-			P95Latency:       pr.estimateLatency(ctx, provider) * 2, // Mock P95
+			P95Latency:       pr.estimateLatency(ctx, provider) * 2,            // Mock P95
 			SuccessRate:      0.95 + (float64(time.Now().UnixNano()%10) / 100), // Mock success rate
 			AvgCostPerToken:  (provider.CostPerTokenPrompt + provider.CostPerTokenCompletion) / 2,
 			QualityScore:     pr.getQualityScore(provider, QualityGold),
@@ -214,7 +221,7 @@ type ScoredProvider struct {
 func (pr *ProviderRouter) isProviderSuitableForQuality(provider ProviderConfig, qualityTier QualityTier) bool {
 	// Simple quality mapping - in production would be more sophisticated
 	qualityScore := pr.getQualityScore(provider, qualityTier)
-	
+
 	switch qualityTier {
 	case QualityGold:
 		return qualityScore >= 0.8
@@ -229,17 +236,17 @@ func (pr *ProviderRouter) isProviderSuitableForQuality(provider ProviderConfig, 
 
 func (pr *ProviderRouter) getQualityScore(provider ProviderConfig, qualityTier QualityTier) float64 {
 	// Mock quality scoring based on provider and model
-	var baseScore float64 = 0.5
+	var baseScore float64
 
 	// Provider-specific scoring
 	switch provider.ProviderName {
-	case "openai":
+	case providerOpenAI:
 		baseScore = 0.9
-	case "anthropic":
+	case providerAnthropic:
 		baseScore = 0.85
-	case "google":
+	case providerGoogle:
 		baseScore = 0.8
-	case "cohere":
+	case providerCohere:
 		baseScore = 0.75
 	default:
 		baseScore = 0.6
@@ -317,13 +324,13 @@ func (pr *ProviderRouter) estimateLatency(ctx context.Context, provider Provider
 	baseLatency := 1000 * time.Millisecond
 
 	switch provider.ProviderName {
-	case "openai":
+	case providerOpenAI:
 		baseLatency = 800 * time.Millisecond
-	case "anthropic":
+	case providerAnthropic:
 		baseLatency = 1200 * time.Millisecond
-	case "google":
+	case providerGoogle:
 		baseLatency = 600 * time.Millisecond
-	case "cohere":
+	case providerCohere:
 		baseLatency = 900 * time.Millisecond
 	}
 
@@ -371,13 +378,13 @@ func (pr *ProviderRouter) getReliabilityScore(ctx context.Context, provider Prov
 
 	// Provider-specific reliability
 	switch provider.ProviderName {
-	case "openai":
+	case providerOpenAI:
 		baseReliability = 0.98
-	case "anthropic":
+	case providerAnthropic:
 		baseReliability = 0.96
-	case "google":
+	case providerGoogle:
 		baseReliability = 0.94
-	case "cohere":
+	case providerCohere:
 		baseReliability = 0.92
 	}
 

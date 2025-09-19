@@ -102,50 +102,50 @@ func runTraceGet(cmd *cobra.Command, args []string) error {
 	// Mock trace events
 	events := []map[string]interface{}{
 		{
-			"timestamp":   time.Now().Add(-5 * time.Minute).Format(time.RFC3339),
-			"event_type":  "started",
-			"step_id":     "step_1",
-			"step_name":   "document_ingestion",
-			"status":      "started",
-			"cost_cents":  0,
+			"timestamp":  time.Now().Add(-5 * time.Minute).Format(time.RFC3339),
+			"event_type": "started",
+			"step_id":    "step_1",
+			"step_name":  "document_ingestion",
+			"status":     "started",
+			"cost_cents": 0,
 		},
 		{
-			"timestamp":   time.Now().Add(-4*time.Minute - 55*time.Second).Format(time.RFC3339),
-			"event_type":  "completed",
-			"step_id":     "step_1",
-			"step_name":   "document_ingestion",
-			"status":      "completed",
-			"cost_cents":  10,
-			"latency_ms":  5000,
+			"timestamp":  time.Now().Add(-4*time.Minute - 55*time.Second).Format(time.RFC3339),
+			"event_type": "completed",
+			"step_id":    "step_1",
+			"step_name":  "document_ingestion",
+			"status":     "completed",
+			"cost_cents": 10,
+			"latency_ms": 5000,
 		},
 		{
-			"timestamp":   time.Now().Add(-4*time.Minute - 54*time.Second).Format(time.RFC3339),
-			"event_type":  "started",
-			"step_id":     "step_2",
-			"step_name":   "llm_analysis",
-			"status":      "started",
-			"cost_cents":  0,
+			"timestamp":  time.Now().Add(-4*time.Minute - 54*time.Second).Format(time.RFC3339),
+			"event_type": "started",
+			"step_id":    "step_2",
+			"step_name":  "llm_analysis",
+			"status":     "started",
+			"cost_cents": 0,
 		},
 		{
-			"timestamp":   time.Now().Add(-4*time.Minute - 30*time.Second).Format(time.RFC3339),
-			"event_type":  "model_io",
-			"step_id":     "step_2",
-			"step_name":   "llm_analysis",
-			"provider":    "openai",
-			"model":       "gpt-4",
-			"tokens_prompt": 150,
+			"timestamp":         time.Now().Add(-4*time.Minute - 30*time.Second).Format(time.RFC3339),
+			"event_type":        "model_io",
+			"step_id":           "step_2",
+			"step_name":         "llm_analysis",
+			"provider":          "openai",
+			"model":             "gpt-4",
+			"tokens_prompt":     150,
 			"tokens_completion": 200,
-			"cost_cents":  75,
-			"latency_ms":  24000,
+			"cost_cents":        75,
+			"latency_ms":        24000,
 		},
 		{
-			"timestamp":   time.Now().Add(-4*time.Minute - 6*time.Second).Format(time.RFC3339),
-			"event_type":  "completed",
-			"step_id":     "step_2",
-			"step_name":   "llm_analysis",
-			"status":      "completed",
-			"cost_cents":  75,
-			"latency_ms":  48000,
+			"timestamp":  time.Now().Add(-4*time.Minute - 6*time.Second).Format(time.RFC3339),
+			"event_type": "completed",
+			"step_id":    "step_2",
+			"step_name":  "llm_analysis",
+			"status":     "completed",
+			"cost_cents": 75,
+			"latency_ms": 48000,
 		},
 	}
 
@@ -171,17 +171,17 @@ func runTraceGet(cmd *cobra.Command, args []string) error {
 		}
 
 	default: // table
-		fmt.Printf("\n%-10s %-12s %-20s %-12s %-10s %-10s\n", 
+		fmt.Printf("\n%-10s %-12s %-20s %-12s %-10s %-10s\n",
 			"TIME", "EVENT", "STEP", "STATUS", "LATENCY", "COST")
 		fmt.Println("--------------------------------------------------------------------------------")
-		
+
 		for _, event := range events {
 			timestamp, _ := time.Parse(time.RFC3339, event["timestamp"].(string))
 			latency := ""
 			if latencyMs, ok := event["latency_ms"]; ok {
 				latency = fmt.Sprintf("%dms", latencyMs.(int))
 			}
-			
+
 			cost := ""
 			if costCents, ok := event["cost_cents"]; ok && costCents.(int) > 0 {
 				cost = fmt.Sprintf("$%.2f", float64(costCents.(int))/100)
@@ -276,7 +276,7 @@ func runTraceReplay(cmd *cobra.Command, args []string) error {
 
 	if wait {
 		fmt.Println("\nStarting replay...")
-		
+
 		// Mock replay progress
 		steps := []string{"document_ingestion", "llm_analysis", "result_formatting"}
 		for i, step := range steps {
@@ -312,25 +312,25 @@ func runTraceDiff(cmd *cobra.Command, args []string) error {
 	// Mock comparison results
 	differences := []map[string]interface{}{
 		{
-			"step":        "llm_analysis",
-			"field":       "output",
-			"difference":  "15% text similarity",
+			"step":         "llm_analysis",
+			"field":        "output",
+			"difference":   "15% text similarity",
 			"significance": "medium",
 		},
 		{
-			"step":        "llm_analysis",
-			"field":       "latency",
-			"run1_value":  "2.4s",
-			"run2_value":  "2.6s",
-			"difference":  "+200ms",
+			"step":         "llm_analysis",
+			"field":        "latency",
+			"run1_value":   "2.4s",
+			"run2_value":   "2.6s",
+			"difference":   "+200ms",
 			"significance": "low",
 		},
 		{
-			"step":        "llm_analysis",
-			"field":       "cost",
-			"run1_value":  "$0.75",
-			"run2_value":  "$0.70",
-			"difference":  "-$0.05",
+			"step":         "llm_analysis",
+			"field":        "cost",
+			"run1_value":   "$0.75",
+			"run2_value":   "$0.70",
+			"difference":   "-$0.05",
 			"significance": "low",
 		},
 	}
@@ -399,20 +399,20 @@ func runTraceAnalyze(cmd *cobra.Command, args []string) error {
 			"p95_step_latency": "24s",
 		},
 		"costs": map[string]interface{}{
-			"total_cost":      "$0.85",
+			"total_cost": "$0.85",
 			"cost_breakdown": map[string]string{
-				"llm_calls":    "$0.75 (88%)",
-				"tool_calls":   "$0.10 (12%)",
-				"compute":      "$0.00 (0%)",
+				"llm_calls":  "$0.75 (88%)",
+				"tool_calls": "$0.10 (12%)",
+				"compute":    "$0.00 (0%)",
 			},
-			"cost_per_step": "$0.28",
+			"cost_per_step":          "$0.28",
 			"optimization_potential": "$0.15 (18%)",
 		},
 		"quality": map[string]interface{}{
-			"success_rate":     "100%",
-			"retry_rate":       "0%",
-			"error_rate":       "0%",
-			"quality_score":    0.92,
+			"success_rate":       "100%",
+			"retry_rate":         "0%",
+			"error_rate":         "0%",
+			"quality_score":      0.92,
 			"output_consistency": "high",
 		},
 	}
@@ -442,7 +442,7 @@ func runTraceAnalyze(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  Total cost: %s\n", costs["total_cost"])
 			fmt.Printf("  Cost per step: %s\n", costs["cost_per_step"])
 			fmt.Printf("  Optimization potential: %s\n", costs["optimization_potential"])
-			
+
 			fmt.Println("  Breakdown:")
 			breakdown := costs["cost_breakdown"].(map[string]string)
 			for category, cost := range breakdown {

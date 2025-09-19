@@ -1,11 +1,10 @@
 package scl
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
-
 )
 
 type PolicyEngine struct {
@@ -90,7 +89,7 @@ func (pe *PolicyEngine) Evaluate(ctx context.Context, orgID uuid.UUID, content i
 func (pe *PolicyEngine) CheckAccess(ctx context.Context, orgID uuid.UUID, bundleID uuid.UUID, policy map[string]interface{}) (bool, error) {
 	// Mock access control implementation
 	// In production, this would integrate with OpenFGA or similar
-	
+
 	// Check if user has read access to the bundle
 	if policy != nil {
 		if requiredRole, exists := policy["required_role"]; exists {

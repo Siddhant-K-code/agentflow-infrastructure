@@ -78,12 +78,12 @@ func init() {
 
 func runWorkflowSubmit(cmd *cobra.Command, args []string) error {
 	workflowName := args[0]
-	
+
 	// Parse inputs
 	var inputs map[string]interface{}
 	inputsStr, _ := cmd.Flags().GetString("inputs")
 	inputsFile, _ := cmd.Flags().GetString("inputs-file")
-	
+
 	if inputsFile != "" {
 		data, err := os.ReadFile(inputsFile)
 		if err != nil {
@@ -123,10 +123,10 @@ func runWorkflowSubmit(cmd *cobra.Command, args []string) error {
 
 	// Submit workflow (mock implementation)
 	runID := "run_" + fmt.Sprintf("%d", time.Now().Unix())
-	
+
 	fmt.Printf("Submitted workflow: %s\n", workflowName)
 	fmt.Printf("Run ID: %s\n", runID)
-	
+
 	if wait {
 		fmt.Printf("Waiting for completion (timeout: %v)...\n", timeout)
 		// Mock waiting
@@ -141,7 +141,7 @@ func runWorkflowSubmit(cmd *cobra.Command, args []string) error {
 
 func runWorkflowStatus(cmd *cobra.Command, args []string) error {
 	runID := args[0]
-	
+
 	// Mock status response
 	status := map[string]interface{}{
 		"id":         runID,
@@ -174,7 +174,7 @@ func runWorkflowList(cmd *cobra.Command, args []string) error {
 	since, _ := cmd.Flags().GetString("since")
 
 	fmt.Printf("Listing workflows (status: %s, limit: %d, since: %s)\n", statusFilter, limit, since)
-	
+
 	// Mock workflow list
 	workflows := []map[string]interface{}{
 		{
@@ -229,13 +229,13 @@ func runWorkflowList(cmd *cobra.Command, args []string) error {
 
 func runWorkflowCancel(cmd *cobra.Command, args []string) error {
 	runID := args[0]
-	
+
 	fmt.Printf("Cancelling workflow run: %s\n", runID)
-	
+
 	// Mock cancellation
 	time.Sleep(1 * time.Second)
 	fmt.Printf("Workflow run cancelled successfully\n")
-	
+
 	return nil
 }
 
@@ -245,7 +245,7 @@ func runWorkflowLogs(cmd *cobra.Command, args []string) error {
 	tail, _ := cmd.Flags().GetInt("tail")
 
 	fmt.Printf("Getting logs for workflow run: %s (tail: %d, follow: %t)\n", runID, tail, follow)
-	
+
 	// Mock logs
 	logs := []string{
 		"2024-01-15 10:00:00 [INFO] Workflow started: document_analysis",

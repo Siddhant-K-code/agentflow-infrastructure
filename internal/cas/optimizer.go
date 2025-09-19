@@ -1,9 +1,9 @@
 package cas
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
@@ -78,9 +78,9 @@ func (o *Optimizer) analyzeProviderUsage(ctx context.Context, orgID uuid.UUID, t
 			"Monitor quality metrics after switching",
 		},
 		Metadata: map[string]interface{}{
-			"current_provider": "openai",
+			"current_provider":   "openai",
 			"suggested_provider": "anthropic",
-			"quality_impact": "minimal",
+			"quality_impact":     "minimal",
 		},
 	})
 
@@ -98,9 +98,9 @@ func (o *Optimizer) analyzeProviderUsage(ctx context.Context, orgID uuid.UUID, t
 			"Set up quality monitoring",
 		},
 		Metadata: map[string]interface{}{
-			"current_model": "gpt-4",
+			"current_model":   "gpt-4",
 			"suggested_model": "gpt-3.5-turbo",
-			"task_types": []string{"simple_qa", "classification"},
+			"task_types":      []string{"simple_qa", "classification"},
 		},
 	})
 
@@ -133,8 +133,8 @@ func (o *Optimizer) analyzeCachingOpportunities(ctx context.Context, orgID uuid.
 			},
 			Metadata: map[string]interface{}{
 				"current_hit_rate": cacheStats.HitRate,
-				"target_hit_rate": 0.6,
-				"cache_size": cacheStats.Size,
+				"target_hit_rate":  0.6,
+				"cache_size":       cacheStats.Size,
 			},
 		})
 	}
@@ -155,7 +155,7 @@ func (o *Optimizer) analyzeCachingOpportunities(ctx context.Context, orgID uuid.
 				"Optimize prompt generation logic",
 			},
 			Metadata: map[string]interface{}{
-				"duplicate_rate": duplicateRate,
+				"duplicate_rate":          duplicateRate,
 				"deduplication_potential": duplicateRate * 0.8,
 			},
 		})
@@ -170,7 +170,7 @@ func (o *Optimizer) analyzeBatchingOpportunities(ctx context.Context, orgID uuid
 
 	// Mock analysis - in production would analyze actual request patterns
 	batchableRequests := o.analyzeBatchableRequests(ctx, orgID, timeRange)
-	
+
 	if batchableRequests > 0.15 { // More than 15% of requests could be batched
 		suggestions = append(suggestions, OptimizationSuggestion{
 			Type:            OptimizationBatching,
@@ -186,8 +186,8 @@ func (o *Optimizer) analyzeBatchingOpportunities(ctx context.Context, orgID uuid
 			},
 			Metadata: map[string]interface{}{
 				"batchable_percentage": batchableRequests,
-				"optimal_batch_size": 5,
-				"latency_impact": "10-20ms increase",
+				"optimal_batch_size":   5,
+				"latency_impact":       "10-20ms increase",
 			},
 		})
 	}
@@ -201,7 +201,7 @@ func (o *Optimizer) analyzeQualityOptimization(ctx context.Context, orgID uuid.U
 
 	// Mock analysis - check if Gold tier is overused
 	goldUsage := o.analyzeQualityTierUsage(ctx, orgID, timeRange, QualityGold)
-	
+
 	if goldUsage > 0.6 { // More than 60% Gold usage
 		suggestions = append(suggestions, OptimizationSuggestion{
 			Type:            OptimizationModelDowngrade,
@@ -216,9 +216,9 @@ func (o *Optimizer) analyzeQualityOptimization(ctx context.Context, orgID uuid.U
 				"Set up quality monitoring and alerts",
 			},
 			Metadata: map[string]interface{}{
-				"current_gold_usage": goldUsage,
+				"current_gold_usage":     goldUsage,
 				"recommended_gold_usage": 0.3,
-				"quality_impact": "minimal for most use cases",
+				"quality_impact":         "minimal for most use cases",
 			},
 		})
 	}
@@ -232,7 +232,7 @@ func (o *Optimizer) analyzeSchedulingOptimization(ctx context.Context, orgID uui
 
 	// Mock analysis - check for peak usage patterns
 	peakUsage := o.analyzePeakUsagePatterns(ctx, orgID, timeRange)
-	
+
 	if peakUsage.PeakRatio > 3.0 { // Peak usage is 3x average
 		suggestions = append(suggestions, OptimizationSuggestion{
 			Type:            OptimizationScheduling,
@@ -247,8 +247,8 @@ func (o *Optimizer) analyzeSchedulingOptimization(ctx context.Context, orgID uui
 				"Use cheaper providers during high-demand periods",
 			},
 			Metadata: map[string]interface{}{
-				"peak_ratio": peakUsage.PeakRatio,
-				"peak_hours": peakUsage.PeakHours,
+				"peak_ratio":           peakUsage.PeakRatio,
+				"peak_hours":           peakUsage.PeakHours,
 				"scheduling_potential": "moderate",
 			},
 		})
@@ -298,10 +298,10 @@ func (o *Optimizer) analyzeQualityTierUsage(ctx context.Context, orgID uuid.UUID
 func (o *Optimizer) analyzePeakUsagePatterns(ctx context.Context, orgID uuid.UUID, timeRange time.Duration) PeakUsageAnalysis {
 	// Mock analysis - in production would analyze time-series data
 	return PeakUsageAnalysis{
-		PeakRatio: 3.5,
-		PeakHours: []int{9, 10, 11, 14, 15, 16}, // Business hours
+		PeakRatio:  3.5,
+		PeakHours:  []int{9, 10, 11, 14, 15, 16}, // Business hours
 		AverageQPS: 10,
-		PeakQPS:   35,
+		PeakQPS:    35,
 	}
 }
 

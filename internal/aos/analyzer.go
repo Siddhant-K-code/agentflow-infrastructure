@@ -23,7 +23,7 @@ func NewTraceAnalyzer(ch *db.ClickHouseDB) *TraceAnalyzer {
 func (ta *TraceAnalyzer) QueryEvents(ctx context.Context, query *TraceQuery) ([]TraceEvent, int64, error) {
 	// Build WHERE clause
 	whereClause, args := ta.buildWhereClause(query)
-	
+
 	// Build main query
 	sqlQuery := fmt.Sprintf(`
 		SELECT 
@@ -265,9 +265,9 @@ func (ta *TraceAnalyzer) GetCostProjections(ctx context.Context, query string) (
 func (ta *TraceAnalyzer) GetCostSavings(ctx context.Context, query string) (*CostSavings, error) {
 	// Mock implementation - in production would analyze actual usage patterns
 	savings := &CostSavings{
-		CachingEnabled:      5000,  // $50 saved through caching
-		ProviderRouting:     8000,  // $80 saved through smart routing
-		QualityOptimization: 3000,  // $30 saved through quality optimization
+		CachingEnabled:      5000, // $50 saved through caching
+		ProviderRouting:     8000, // $80 saved through smart routing
+		QualityOptimization: 3000, // $30 saved through quality optimization
 	}
 
 	savings.TotalSavings = savings.CachingEnabled + savings.ProviderRouting + savings.QualityOptimization

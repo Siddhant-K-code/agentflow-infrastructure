@@ -16,7 +16,7 @@ func NewTemplateRenderer() *TemplateRenderer {
 		funcMap: template.FuncMap{
 			"upper":    strings.ToUpper,
 			"lower":    strings.ToLower,
-			"title":    strings.Title,
+			"title":    titleCase,
 			"trim":     strings.TrimSpace,
 			"join":     strings.Join,
 			"contains": strings.Contains,
@@ -107,12 +107,12 @@ func (r *TemplateRenderer) createDummyData(schema Schema) map[string]interface{}
 func (r *TemplateRenderer) validateSafety(templateText string) error {
 	// Check for potentially dangerous patterns
 	dangerousPatterns := []string{
-		"{{.}}",           // Direct object access
-		"call",            // Function calls
-		"index",           // Index access
-		"js",              // JavaScript
-		"script",          // Script tags
-		"eval",            // Eval functions
+		"{{.}}",  // Direct object access
+		"call",   // Function calls
+		"index",  // Index access
+		"js",     // JavaScript
+		"script", // Script tags
+		"eval",   // Eval functions
 	}
 
 	lowerTemplate := strings.ToLower(templateText)
@@ -130,10 +130,18 @@ func defaultValue(defaultVal interface{}, value interface{}) interface{} {
 	if value == nil {
 		return defaultVal
 	}
-	
+
 	if str, ok := value.(string); ok && str == "" {
 		return defaultVal
 	}
-	
+
 	return value
+}
+
+// titleCase provides a simple title case implementation to replace deprecated strings.Title
+func titleCase(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
 }

@@ -7,15 +7,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
+	"github.com/google/uuid"
 )
 
 type Service struct {
-	cfg      *config.Config
-	db       *db.PostgresDB
-	renderer *TemplateRenderer
+	cfg       *config.Config
+	db        *db.PostgresDB
+	renderer  *TemplateRenderer
 	evaluator *Evaluator
 }
 
@@ -228,7 +228,7 @@ func (s *Service) UpdateDeployment(ctx context.Context, orgID uuid.UUID, req *De
 
 func (s *Service) getNextVersion(ctx context.Context, orgID uuid.UUID, name string) (int, error) {
 	query := `SELECT COALESCE(MAX(version), 0) + 1 FROM prompt_template WHERE org_id = $1 AND name = $2`
-	
+
 	var nextVersion int
 	err := s.db.QueryRowContext(ctx, query, orgID, name).Scan(&nextVersion)
 	if err != nil {

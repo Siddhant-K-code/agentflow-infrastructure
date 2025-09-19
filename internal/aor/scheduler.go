@@ -1,10 +1,10 @@
 package aor
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"time"
 
@@ -64,7 +64,7 @@ func (s *Scheduler) ScheduleWorkflow(ctx context.Context, run *WorkflowRun) erro
 		if taskID == uuid.Nil {
 			taskID = uuid.New()
 		}
-		
+
 		node := &Node{
 			ID:     step.ID,
 			Type:   step.Type,
@@ -154,7 +154,7 @@ func (s *Scheduler) resolveInputs(ctx context.Context, run *WorkflowRun, node *N
 
 func (s *Scheduler) enqueueTask(ctx context.Context, task *Task) error {
 	log.Printf("Enqueuing task %s", task.ID)
-	
+
 	// Serialize task
 	taskData, err := json.Marshal(task)
 	if err != nil {
@@ -254,7 +254,7 @@ func (s *Scheduler) getStepRun(ctx context.Context, stepRunID string) (*StepRun,
 
 func (s *Scheduler) GetWorkflowStatus(ctx context.Context, runID uuid.UUID) (*WorkflowRun, error) {
 	log.Printf("Getting workflow status for run %s", runID)
-	
+
 	// Mock implementation
 	return &WorkflowRun{
 		ID:             runID,

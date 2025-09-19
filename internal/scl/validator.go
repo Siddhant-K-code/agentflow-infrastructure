@@ -46,7 +46,7 @@ func (v *Validator) getSchema(schemaURI string) (map[string]interface{}, error) 
 	// Mock schema loading - in production would fetch from URI
 	schema := v.getMockSchema(schemaURI)
 	v.schemaCache[schemaURI] = schema
-	
+
 	return schema, nil
 }
 
@@ -72,7 +72,7 @@ func (v *Validator) getMockSchema(schemaURI string) map[string]interface{} {
 
 	// Default schema
 	return map[string]interface{}{
-		"type": "object",
+		"type":                 "object",
 		"additionalProperties": true,
 	}
 }

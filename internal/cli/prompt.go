@@ -97,11 +97,11 @@ func init() {
 
 func runPromptCreate(cmd *cobra.Command, args []string) error {
 	name := args[0]
-	
+
 	// Get template content
 	template, _ := cmd.Flags().GetString("template")
 	templateFile, _ := cmd.Flags().GetString("file")
-	
+
 	if templateFile != "" {
 		data, err := os.ReadFile(templateFile)
 		if err != nil {
@@ -118,7 +118,7 @@ func runPromptCreate(cmd *cobra.Command, args []string) error {
 	var schema map[string]interface{}
 	schemaStr, _ := cmd.Flags().GetString("schema")
 	schemaFile, _ := cmd.Flags().GetString("schema-file")
-	
+
 	if schemaFile != "" {
 		data, err := os.ReadFile(schemaFile)
 		if err != nil {
@@ -143,11 +143,11 @@ func runPromptCreate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Version: %d\n", version)
 	fmt.Printf("ID: %s\n", promptID)
 	fmt.Printf("Template length: %d characters\n", len(template))
-	
+
 	if len(schema) > 0 {
 		fmt.Printf("Schema: %d properties\n", len(schema))
 	}
-	
+
 	if len(metadata) > 0 {
 		fmt.Printf("Metadata: %v\n", metadata)
 	}
@@ -164,25 +164,25 @@ func runPromptList(cmd *cobra.Command, args []string) error {
 	// Mock prompt list
 	prompts := []map[string]interface{}{
 		{
-			"name":         "document_analyzer",
+			"name":           "document_analyzer",
 			"latest_version": 3,
-			"created_at":   time.Now().Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"updated_at":   time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
-			"deployed":     true,
+			"created_at":     time.Now().Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"updated_at":     time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
+			"deployed":       true,
 		},
 		{
-			"name":         "content_generator",
+			"name":           "content_generator",
 			"latest_version": 2,
-			"created_at":   time.Now().Add(-5 * 24 * time.Hour).Format(time.RFC3339),
-			"updated_at":   time.Now().Add(-1 * 24 * time.Hour).Format(time.RFC3339),
-			"deployed":     false,
+			"created_at":     time.Now().Add(-5 * 24 * time.Hour).Format(time.RFC3339),
+			"updated_at":     time.Now().Add(-1 * 24 * time.Hour).Format(time.RFC3339),
+			"deployed":       false,
 		},
 		{
-			"name":         "data_extractor",
+			"name":           "data_extractor",
 			"latest_version": 1,
-			"created_at":   time.Now().Add(-3 * 24 * time.Hour).Format(time.RFC3339),
-			"updated_at":   time.Now().Add(-3 * 24 * time.Hour).Format(time.RFC3339),
-			"deployed":     true,
+			"created_at":     time.Now().Add(-3 * 24 * time.Hour).Format(time.RFC3339),
+			"updated_at":     time.Now().Add(-3 * 24 * time.Hour).Format(time.RFC3339),
+			"deployed":       true,
 		},
 	}
 
@@ -291,7 +291,7 @@ created_at: %s`,
 func runPromptEval(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	version := args[1]
-	
+
 	suite, _ := cmd.Flags().GetString("suite")
 	parallel, _ := cmd.Flags().GetInt("parallel")
 	wait, _ := cmd.Flags().GetBool("wait")
@@ -333,7 +333,7 @@ func runPromptEval(cmd *cobra.Command, args []string) error {
 
 func runPromptDeploy(cmd *cobra.Command, args []string) error {
 	name := args[0]
-	
+
 	stable, _ := cmd.Flags().GetInt("stable")
 	canary, _ := cmd.Flags().GetInt("canary")
 	canaryRatio, _ := cmd.Flags().GetFloat64("canary-ratio")
@@ -344,7 +344,7 @@ func runPromptDeploy(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("Deploying prompt: %s\n", name)
 	fmt.Printf("Stable version: %d\n", stable)
-	
+
 	if canary > 0 {
 		fmt.Printf("Canary version: %d\n", canary)
 		fmt.Printf("Canary ratio: %.1f%%\n", canaryRatio*100)
@@ -353,9 +353,9 @@ func runPromptDeploy(cmd *cobra.Command, args []string) error {
 	// Mock deployment
 	time.Sleep(1 * time.Second)
 	fmt.Printf("Deployment successful!\n")
-	
+
 	if canary > 0 {
-		fmt.Printf("Traffic split: %.1f%% stable, %.1f%% canary\n", 
+		fmt.Printf("Traffic split: %.1f%% stable, %.1f%% canary\n",
 			(1-canaryRatio)*100, canaryRatio*100)
 	}
 
@@ -364,13 +364,13 @@ func runPromptDeploy(cmd *cobra.Command, args []string) error {
 
 func runPromptTest(cmd *cobra.Command, args []string) error {
 	name := args[0]
-	
+
 	// Parse inputs
 	var inputs map[string]interface{}
 	inputsStr, _ := cmd.Flags().GetString("inputs")
 	inputsFile, _ := cmd.Flags().GetString("inputs-file")
 	version, _ := cmd.Flags().GetInt("version")
-	
+
 	if inputsFile != "" {
 		data, err := os.ReadFile(inputsFile)
 		if err != nil {
@@ -392,7 +392,7 @@ func runPromptTest(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	fmt.Printf("Inputs: %v\n", inputs)
-	
+
 	// Mock test execution
 	fmt.Println("Executing prompt...")
 	time.Sleep(2 * time.Second)
@@ -426,6 +426,6 @@ func runPromptTest(cmd *cobra.Command, args []string) error {
 
 // Helper function
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || 
+	return len(s) >= len(substr) && (s == substr ||
 		(len(substr) > 0 && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr)))
 }

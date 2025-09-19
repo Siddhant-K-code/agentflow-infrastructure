@@ -20,17 +20,17 @@ type ContextBundle struct {
 
 // Provenance tracks the source and processing history of context
 type Provenance struct {
-	Sources     []Source           `json:"sources"`
-	Attestations []Attestation     `json:"attestations"`
-	Processing  []ProcessingStep   `json:"processing"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Sources      []Source               `json:"sources"`
+	Attestations []Attestation          `json:"attestations"`
+	Processing   []ProcessingStep       `json:"processing"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type Source struct {
-	ID        string            `json:"id"`
-	Type      SourceType        `json:"type"`
-	URI       string            `json:"uri"`
-	Timestamp time.Time         `json:"timestamp"`
+	ID        string                 `json:"id"`
+	Type      SourceType             `json:"type"`
+	URI       string                 `json:"uri"`
+	Timestamp time.Time              `json:"timestamp"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -45,10 +45,10 @@ const (
 )
 
 type Attestation struct {
-	Type      AttestationType `json:"type"`
-	Signature string          `json:"signature"`
-	PublicKey string          `json:"public_key"`
-	Timestamp time.Time       `json:"timestamp"`
+	Type      AttestationType        `json:"type"`
+	Signature string                 `json:"signature"`
+	PublicKey string                 `json:"public_key"`
+	Timestamp time.Time              `json:"timestamp"`
 	Claims    map[string]interface{} `json:"claims,omitempty"`
 }
 
@@ -62,27 +62,27 @@ const (
 )
 
 type ProcessingStep struct {
-	Stage     ProcessingStage `json:"stage"`
-	Timestamp time.Time       `json:"timestamp"`
-	Result    ProcessingResult `json:"result"`
+	Stage     ProcessingStage        `json:"stage"`
+	Timestamp time.Time              `json:"timestamp"`
+	Result    ProcessingResult       `json:"result"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type ProcessingStage string
 
 const (
-	StageValidation    ProcessingStage = "validation"
-	StageSanitization  ProcessingStage = "sanitization"
-	StageRedaction     ProcessingStage = "redaction"
-	StagePolicy        ProcessingStage = "policy"
-	StageEnrichment    ProcessingStage = "enrichment"
+	StageValidation   ProcessingStage = "validation"
+	StageSanitization ProcessingStage = "sanitization"
+	StageRedaction    ProcessingStage = "redaction"
+	StagePolicy       ProcessingStage = "policy"
+	StageEnrichment   ProcessingStage = "enrichment"
 )
 
 type ProcessingResult struct {
-	Status   ProcessingStatus `json:"status"`
-	Message  string           `json:"message,omitempty"`
-	Warnings []string         `json:"warnings,omitempty"`
-	Errors   []string         `json:"errors,omitempty"`
+	Status   ProcessingStatus       `json:"status"`
+	Message  string                 `json:"message,omitempty"`
+	Warnings []string               `json:"warnings,omitempty"`
+	Errors   []string               `json:"errors,omitempty"`
 	Metrics  map[string]interface{} `json:"metrics,omitempty"`
 }
 
@@ -97,22 +97,22 @@ const (
 
 // IngestRequest represents a request to ingest and process context
 type IngestRequest struct {
-	Content   interface{}            `json:"content"`
-	SchemaURI string                 `json:"schema_uri,omitempty"`
-	Sources   []Source               `json:"sources,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Content     interface{}            `json:"content"`
+	SchemaURI   string                 `json:"schema_uri,omitempty"`
+	Sources     []Source               `json:"sources,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 	PolicyHints map[string]interface{} `json:"policy_hints,omitempty"`
 }
 
 // IngestResponse represents the result of context ingestion
 type IngestResponse struct {
-	BundleID    uuid.UUID `json:"bundle_id"`
-	Hash        string    `json:"hash"`
-	TrustScore  float64   `json:"trust_score"`
-	Status      ProcessingStatus `json:"status"`
-	Warnings    []string  `json:"warnings,omitempty"`
-	Errors      []string  `json:"errors,omitempty"`
-	ProcessingTime time.Duration `json:"processing_time"`
+	BundleID       uuid.UUID        `json:"bundle_id"`
+	Hash           string           `json:"hash"`
+	TrustScore     float64          `json:"trust_score"`
+	Status         ProcessingStatus `json:"status"`
+	Warnings       []string         `json:"warnings,omitempty"`
+	Errors         []string         `json:"errors,omitempty"`
+	ProcessingTime time.Duration    `json:"processing_time"`
 }
 
 // PrepareRequest represents a request to prepare context for use
@@ -125,9 +125,9 @@ type PrepareRequest struct {
 
 // PrepareResponse represents prepared context ready for use
 type PrepareResponse struct {
-	Chunks     []ContextChunk `json:"chunks"`
-	Citations  []Citation     `json:"citations"`
-	TrustScore float64        `json:"trust_score"`
+	Chunks     []ContextChunk         `json:"chunks"`
+	Citations  []Citation             `json:"citations"`
+	TrustScore float64                `json:"trust_score"`
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -163,34 +163,34 @@ type PolicyTestResponse struct {
 }
 
 type PolicyViolation struct {
-	Rule        string `json:"rule"`
-	Severity    string `json:"severity"`
-	Message     string `json:"message"`
-	Location    string `json:"location,omitempty"`
-	Suggestion  string `json:"suggestion,omitempty"`
+	Rule       string `json:"rule"`
+	Severity   string `json:"severity"`
+	Message    string `json:"message"`
+	Location   string `json:"location,omitempty"`
+	Suggestion string `json:"suggestion,omitempty"`
 }
 
 // RedactionConfig configures how PII and sensitive data is handled
 type RedactionConfig struct {
-	Enabled    bool                   `json:"enabled"`
-	Patterns   []RedactionPattern     `json:"patterns"`
-	Reversible bool                   `json:"reversible"`
-	KMSKeyID   string                 `json:"kms_key_id,omitempty"`
+	Enabled    bool               `json:"enabled"`
+	Patterns   []RedactionPattern `json:"patterns"`
+	Reversible bool               `json:"reversible"`
+	KMSKeyID   string             `json:"kms_key_id,omitempty"`
 }
 
 type RedactionPattern struct {
-	Name        string `json:"name"`
-	Pattern     string `json:"pattern"`
-	Replacement string `json:"replacement"`
+	Name        string  `json:"name"`
+	Pattern     string  `json:"pattern"`
+	Replacement string  `json:"replacement"`
 	Confidence  float64 `json:"confidence"`
 }
 
 // InjectionFilter configures prompt injection detection
 type InjectionFilter struct {
-	Enabled     bool                   `json:"enabled"`
-	Heuristics  []HeuristicRule        `json:"heuristics"`
-	Embeddings  EmbeddingConfig        `json:"embeddings,omitempty"`
-	LLMJudge    LLMJudgeConfig         `json:"llm_judge,omitempty"`
+	Enabled    bool            `json:"enabled"`
+	Heuristics []HeuristicRule `json:"heuristics"`
+	Embeddings EmbeddingConfig `json:"embeddings,omitempty"`
+	LLMJudge   LLMJudgeConfig  `json:"llm_judge,omitempty"`
 }
 
 type HeuristicRule struct {
@@ -201,9 +201,9 @@ type HeuristicRule struct {
 }
 
 type EmbeddingConfig struct {
-	Model     string  `json:"model"`
-	Threshold float64 `json:"threshold"`
-	CorpusPath string `json:"corpus_path"`
+	Model      string  `json:"model"`
+	Threshold  float64 `json:"threshold"`
+	CorpusPath string  `json:"corpus_path"`
 }
 
 type LLMJudgeConfig struct {

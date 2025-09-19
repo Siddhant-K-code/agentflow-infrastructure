@@ -1,9 +1,9 @@
 package aos
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
@@ -11,12 +11,12 @@ import (
 )
 
 type Service struct {
-	cfg         *config.Config
-	clickhouse  *db.ClickHouseDB
-	postgres    *db.PostgresDB
-	collector   *EventCollector
-	analyzer    *TraceAnalyzer
-	replayer    *Replayer
+	cfg        *config.Config
+	clickhouse *db.ClickHouseDB
+	postgres   *db.PostgresDB
+	collector  *EventCollector
+	analyzer   *TraceAnalyzer
+	replayer   *Replayer
 }
 
 func NewService(cfg *config.Config, ch *db.ClickHouseDB, pg *db.PostgresDB) *Service {
@@ -261,7 +261,7 @@ func (s *Service) buildCostQuery(req *CostAnalysisRequest) string {
 		AND event_type = 'model_io'
 		GROUP BY %s
 		ORDER BY total_cost DESC
-	`, 
+	`,
 		joinGroupBy(req.GroupBy),
 		req.OrgID.String(),
 		req.StartTime.Format("2006-01-02 15:04:05"),

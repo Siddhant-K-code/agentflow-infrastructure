@@ -1,9 +1,9 @@
 package cas
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
@@ -12,14 +12,14 @@ import (
 )
 
 type Service struct {
-	cfg        *config.Config
-	postgres   *db.PostgresDB
-	redis      *redis.Client
-	router     *ProviderRouter
-	budgetMgr  *BudgetManager
-	cache      *CacheManager
-	quotaMgr   *QuotaManager
-	optimizer  *Optimizer
+	cfg       *config.Config
+	postgres  *db.PostgresDB
+	redis     *redis.Client
+	router    *ProviderRouter
+	budgetMgr *BudgetManager
+	cache     *CacheManager
+	quotaMgr  *QuotaManager
+	optimizer *Optimizer
 }
 
 func NewService(cfg *config.Config, pg *db.PostgresDB, redisClient *redis.Client) *Service {
@@ -145,13 +145,13 @@ func (s *Service) GetOptimizationSuggestions(ctx context.Context, orgID uuid.UUI
 // CreateBudget creates a new budget
 func (s *Service) CreateBudget(ctx context.Context, orgID uuid.UUID, periodType PeriodType, limitCents int64, projectID *uuid.UUID) (*Budget, error) {
 	budget := &Budget{
-		ID:          uuid.New(),
-		OrgID:       orgID,
-		ProjectID:   projectID,
-		PeriodType:  periodType,
-		LimitCents:  limitCents,
-		SpentCents:  0,
-		CreatedAt:   time.Now(),
+		ID:         uuid.New(),
+		OrgID:      orgID,
+		ProjectID:  projectID,
+		PeriodType: periodType,
+		LimitCents: limitCents,
+		SpentCents: 0,
+		CreatedAt:  time.Now(),
 	}
 
 	// Set period boundaries
@@ -190,7 +190,7 @@ func (s *Service) GetProviderMetrics(ctx context.Context, orgID uuid.UUID, timeR
 // ProcessBatch processes a batch of operations for cost optimization
 func (s *Service) ProcessBatch(ctx context.Context, orgID uuid.UUID, req *BatchRequest) (*BatchResponse, error) {
 	batchID := uuid.New().String()
-	
+
 	response := &BatchResponse{
 		BatchID:   batchID,
 		Results:   make([]BatchResult, 0, len(req.Operations)),
@@ -285,7 +285,7 @@ func (s *Service) processBatchGroup(ctx context.Context, orgID uuid.UUID, operat
 		}
 
 		// Mock cost calculation
-		cost := int64(100) // Base cost per operation
+		cost := int64(100)   // Base cost per operation
 		savings := int64(20) // Savings from batching
 
 		totalCost += cost

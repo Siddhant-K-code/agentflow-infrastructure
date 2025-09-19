@@ -1,10 +1,10 @@
 package cas
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
@@ -216,7 +216,7 @@ func (bm *BudgetManager) GetBudgetHistory(ctx context.Context, budgetID uuid.UUI
 	// This would query spending history from AOS trace events
 	// For now, return mock data
 	history := make([]BudgetHistoryEntry, 0)
-	
+
 	startDate := time.Now().AddDate(0, 0, -days)
 	for i := 0; i < days; i++ {
 		date := startDate.AddDate(0, 0, i)
@@ -252,7 +252,7 @@ func (bm *BudgetManager) createDefaultBudget(ctx context.Context, orgID uuid.UUI
 func (bm *BudgetManager) sendBudgetAlert(ctx context.Context, budget *Budget, newSpent int64) {
 	// Mock alert sending - in production would integrate with notification system
 	utilizationPct := float64(newSpent) / float64(budget.LimitCents) * 100
-	
+
 	alert := BudgetAlert{
 		BudgetID:       budget.ID,
 		OrgID:          budget.OrgID,

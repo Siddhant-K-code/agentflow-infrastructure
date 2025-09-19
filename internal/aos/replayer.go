@@ -1,12 +1,17 @@
 package aos
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
+)
+
+const (
+	significanceHigh = "high"
+	significanceLow  = "low"
 )
 
 type Replayer struct {
@@ -140,7 +145,7 @@ func (r *Replayer) mockStepExecution(originalEvents []TraceEvent) map[string]int
 
 	result := map[string]interface{}{
 		"output":            "Mock replay output",
-		"latency_ms":        150 + (time.Now().UnixNano()%100), // Add some variance
+		"latency_ms":        150 + (time.Now().UnixNano() % 100), // Add some variance
 		"cost_cents":        100,
 		"tokens_prompt":     80,
 		"tokens_completion": 40,
@@ -195,7 +200,7 @@ func (r *Replayer) compareStepResults(originalEvents []TraceEvent, replayResult 
 	if replayLatency, exists := replayResult["latency_ms"]; exists {
 		originalLatency := int64(originalCompletion.LatencyMs)
 		replayLatencyInt := int64(replayLatency.(int))
-		
+
 		if abs64(originalLatency-replayLatencyInt) > 50 { // 50ms threshold
 			differences = append(differences, Difference{
 				StepID:       stepID,
@@ -212,11 +217,11 @@ func (r *Replayer) compareStepResults(originalEvents []TraceEvent, replayResult 
 	if replayCost, exists := replayResult["cost_cents"]; exists {
 		originalCost := originalCompletion.CostCents
 		replayCostInt := int64(replayCost.(int))
-		
+
 		if originalCost != replayCostInt {
-			significance := "low"
+			significance := significanceLow
 			if abs64(originalCost-replayCostInt) > originalCost/10 { // >10% difference
-				significance = "high"
+				significance = significanceHigh
 			}
 
 			differences = append(differences, Difference{
@@ -234,7 +239,7 @@ func (r *Replayer) compareStepResults(originalEvents []TraceEvent, replayResult 
 	if replayTokensPrompt, exists := replayResult["tokens_prompt"]; exists {
 		originalTokens := int64(originalCompletion.TokensPrompt)
 		replayTokensInt := int64(replayTokensPrompt.(int))
-		
+
 		if originalTokens != replayTokensInt {
 			differences = append(differences, Difference{
 				StepID:       stepID,
@@ -261,7 +266,7 @@ func (r *Replayer) calculateSignificance(original, replay interface{}) string {
 
 	// Calculate string similarity (very basic)
 	similarity := r.calculateStringSimilarity(originalStr, replayStr)
-	
+
 	if similarity > 0.9 {
 		return "low"
 	} else if similarity > 0.7 {

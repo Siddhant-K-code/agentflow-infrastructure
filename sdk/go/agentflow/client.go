@@ -92,11 +92,11 @@ func (c *Client) makeRequest(ctx context.Context, method, path string, body inte
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	
+
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
-	
+
 	if c.orgID != "" {
 		req.Header.Set("X-Org-ID", c.orgID)
 	}
@@ -118,7 +118,7 @@ func (c *Client) makeRequest(ctx context.Context, method, path string, body inte
 // parseResponse parses an HTTP response into a struct
 func (c *Client) parseResponse(resp *http.Response, result interface{}) error {
 	defer resp.Body.Close()
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
@@ -170,7 +170,7 @@ func (ws *WorkflowService) Get(ctx context.Context, runID uuid.UUID) (*WorkflowR
 // List lists workflow runs with optional filters
 func (ws *WorkflowService) List(ctx context.Context, opts *ListWorkflowsOptions) (*ListWorkflowsResponse, error) {
 	path := "/api/v1/workflows/runs"
-	
+
 	if opts != nil {
 		params := url.Values{}
 		if opts.Status != "" {
