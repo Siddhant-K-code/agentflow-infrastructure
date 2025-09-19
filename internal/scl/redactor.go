@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Redactor struct {
@@ -128,7 +129,12 @@ func (r *Redactor) generateToken(original, piiType string) string {
 
 	// Generate new token
 	randomBytes := make([]byte, 8)
-	rand.Read(randomBytes)
+	if _, err := rand.Read(randomBytes); err != nil {
+		// Fallback to timestamp-based token if crypto/rand fails
+		token := fmt.Sprintf("[REDACTED_%s_%d]", strings.ToUpper(piiType), time.Now().UnixNano()%100000000)
+		r.tokenMap[key] = token
+		return token
+	}
 	token := fmt.Sprintf("[REDACTED_%s_%s]", strings.ToUpper(piiType), hex.EncodeToString(randomBytes)[:8])
 
 	r.tokenMap[key] = token

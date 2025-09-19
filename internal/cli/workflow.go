@@ -85,6 +85,10 @@ func runWorkflowSubmit(cmd *cobra.Command, args []string) error {
 	inputsFile, _ := cmd.Flags().GetString("inputs-file")
 
 	if inputsFile != "" {
+		// Validate file path to prevent directory traversal
+		if err := validateFilePath(inputsFile); err != nil {
+			return fmt.Errorf("invalid file path: %w", err)
+		}
 		data, err := os.ReadFile(inputsFile)
 		if err != nil {
 			return fmt.Errorf("failed to read inputs file: %w", err)
@@ -113,7 +117,9 @@ func runWorkflowSubmit(cmd *cobra.Command, args []string) error {
 
 	if version != "" {
 		versionInt := 0
-		fmt.Sscanf(version, "%d", &versionInt)
+		if _, err := fmt.Sscanf(version, "%d", &versionInt); err != nil {
+			return fmt.Errorf("invalid version format: %w", err)
+		}
 		request["workflow_version"] = versionInt
 	}
 

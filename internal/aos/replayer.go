@@ -167,9 +167,9 @@ func (r *Replayer) compareStepResults(originalEvents []TraceEvent, replayResult 
 
 	// Find the completion event from original
 	var originalCompletion *TraceEvent
-	for _, event := range originalEvents {
-		if event.EventType == EventTypeCompleted {
-			originalCompletion = &event
+	for i := range originalEvents {
+		if originalEvents[i].EventType == EventTypeCompleted {
+			originalCompletion = &originalEvents[i]
 			break
 		}
 	}

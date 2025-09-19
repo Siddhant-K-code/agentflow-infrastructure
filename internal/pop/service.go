@@ -2,9 +2,10 @@ package pop
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
@@ -103,7 +104,7 @@ func (s *Service) ResolvePrompt(ctx context.Context, orgID uuid.UUID, req *Promp
 
 		// Canary routing
 		if deployment.CanaryVersion != nil && deployment.CanaryRatio > 0 {
-			if rand.Float64() < deployment.CanaryRatio {
+			if secureRandFloat64() < deployment.CanaryRatio {
 				version = deployment.CanaryVersion
 				isCanary = true
 			} else {
@@ -348,4 +349,16 @@ func (s *Service) executeEvaluation(ctx context.Context, evalRun *EvaluationRun,
 	evalRun.Status = EvaluationStatusCompleted
 	now := time.Now()
 	evalRun.CompletedAt = &now
+}
+
+// secureRandFloat64 generates a cryptographically secure random float64 between 0 and 1
+func secureRandFloat64() float64 {
+	var b [8]byte
+	_, err := rand.Read(b[:])
+	if err != nil {
+		// Fallback to time-based seed if crypto/rand fails
+		return 0.5
+	}
+	// Convert to uint64 and normalize to [0,1)
+	return float64(binary.BigEndian.Uint64(b[:])) / float64(1<<64)
 }

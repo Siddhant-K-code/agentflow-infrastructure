@@ -3,6 +3,8 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -80,4 +82,27 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil && verbose {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+// validateFilePath validates file paths to prevent directory traversal attacks
+func validateFilePath(path string) error {
+	// Clean the path to resolve any .. or . components
+	cleanPath := filepath.Clean(path)
+	
+	// Check for directory traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return fmt.Errorf("directory traversal not allowed")
+	}
+	
+	// Ensure the path is not absolute (starts with /)
+	if filepath.IsAbs(cleanPath) {
+		return fmt.Errorf("absolute paths not allowed")
+	}
+	
+	// Additional check for common dangerous patterns
+	if strings.HasPrefix(cleanPath, "/") || strings.HasPrefix(cleanPath, "\\") {
+		return fmt.Errorf("path cannot start with directory separator")
+	}
+	
+	return nil
 }

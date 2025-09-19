@@ -103,6 +103,10 @@ func runPromptCreate(cmd *cobra.Command, args []string) error {
 	templateFile, _ := cmd.Flags().GetString("file")
 
 	if templateFile != "" {
+		// Validate file path to prevent directory traversal
+		if err := validateFilePath(templateFile); err != nil {
+			return fmt.Errorf("invalid template file path: %w", err)
+		}
 		data, err := os.ReadFile(templateFile)
 		if err != nil {
 			return fmt.Errorf("failed to read template file: %w", err)
@@ -120,6 +124,10 @@ func runPromptCreate(cmd *cobra.Command, args []string) error {
 	schemaFile, _ := cmd.Flags().GetString("schema-file")
 
 	if schemaFile != "" {
+		// Validate file path to prevent directory traversal
+		if err := validateFilePath(schemaFile); err != nil {
+			return fmt.Errorf("invalid schema file path: %w", err)
+		}
 		data, err := os.ReadFile(schemaFile)
 		if err != nil {
 			return fmt.Errorf("failed to read schema file: %w", err)
@@ -372,6 +380,10 @@ func runPromptTest(cmd *cobra.Command, args []string) error {
 	version, _ := cmd.Flags().GetInt("version")
 
 	if inputsFile != "" {
+		// Validate file path to prevent directory traversal
+		if err := validateFilePath(inputsFile); err != nil {
+			return fmt.Errorf("invalid inputs file path: %w", err)
+		}
 		data, err := os.ReadFile(inputsFile)
 		if err != nil {
 			return fmt.Errorf("failed to read inputs file: %w", err)

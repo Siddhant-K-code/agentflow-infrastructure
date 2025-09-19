@@ -130,15 +130,15 @@ func (cm *CacheManager) GetStats(ctx context.Context, orgID uuid.UUID) (*CacheSt
 	}
 
 	if hitStr, exists := result["hits"]; exists {
-		fmt.Sscanf(hitStr, "%d", &stats.Hits)
+		_, _ = fmt.Sscanf(hitStr, "%d", &stats.Hits) // Ignore parse errors for stats
 	}
 
 	if missStr, exists := result["misses"]; exists {
-		fmt.Sscanf(missStr, "%d", &stats.Misses)
+		_, _ = fmt.Sscanf(missStr, "%d", &stats.Misses) // Ignore parse errors for stats
 	}
 
 	if putStr, exists := result["puts"]; exists {
-		fmt.Sscanf(putStr, "%d", &stats.Puts)
+		_, _ = fmt.Sscanf(putStr, "%d", &stats.Puts) // Ignore parse errors for stats
 	}
 
 	// Calculate hit rate

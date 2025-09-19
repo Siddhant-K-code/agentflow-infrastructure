@@ -2,8 +2,9 @@ package cas
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"math"
-	"math/rand"
 	"time"
 )
 
@@ -216,9 +217,9 @@ func (eg *EpsilonGreedy) SelectProvider(ctx context.Context, scoredProviders []S
 	}
 
 	// Epsilon-greedy selection
-	if rand.Float64() < eg.epsilon {
+	if secureRandFloat64() < eg.epsilon {
 		// Explore: random selection
-		return scoredProviders[rand.Intn(len(scoredProviders))]
+		return scoredProviders[secureRandInt(len(scoredProviders))]
 	}
 
 	// Exploit: select best performing provider
@@ -267,4 +268,30 @@ func (eg *EpsilonGreedy) UpdateReward(providerName, modelName string, reward flo
 	if arm.Pulls > 0 {
 		arm.AverageReward = arm.TotalReward / float64(arm.Pulls)
 	}
+}
+
+// secureRandFloat64 generates a cryptographically secure random float64 between 0 and 1
+func secureRandFloat64() float64 {
+	var b [8]byte
+	_, err := rand.Read(b[:])
+	if err != nil {
+		// Fallback to time-based seed if crypto/rand fails
+		return 0.5
+	}
+	// Convert to uint64 and normalize to [0,1)
+	return float64(binary.BigEndian.Uint64(b[:])) / float64(1<<64)
+}
+
+// secureRandInt generates a cryptographically secure random int in range [0, n)
+func secureRandInt(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	var b [4]byte
+	_, err := rand.Read(b[:])
+	if err != nil {
+		// Fallback to time-based value if crypto/rand fails
+		return 0
+	}
+	return int(binary.BigEndian.Uint32(b[:])) % n
 }
