@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.15.0
 	github.com/golang-migrate/migrate/v4 v4.16.2
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/nats-io/nats.go v1.31.0
 	github.com/redis/go-redis/v9 v9.3.0
