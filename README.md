@@ -8,7 +8,7 @@ AgentFlow provides a complete infrastructure for building, deploying, and managi
 
 ### 1. Agent Orchestration Runtime (AOR)
 - **Purpose**: Fan-out/fan-in, retries, backpressure, cancellation, and idempotency for multi-agent DAGs
-- **Features**: 
+- **Features**:
   - DAG-based workflow execution
   - Map-reduce patterns
   - Exactly-once semantics
@@ -46,6 +46,157 @@ AgentFlow provides a complete infrastructure for building, deploying, and managi
   - Budget enforcement and quotas
   - Intelligent caching and batching
   - Cost optimization recommendations
+
+
+```mermaid
+graph TB
+    %% External Interfaces
+    User[👤 Developer/User]
+    CLI[🖥️ AgentCtl CLI]
+    WebUI[🌐 Web Dashboard]
+    SDK[📦 Go SDK]
+
+    %% Core Services - The Five Pillars
+    subgraph "🏗️ AgentFlow Infrastructure"
+        subgraph "🎯 AOR - Agent Orchestration Runtime"
+            CP[Control Plane]
+            Scheduler[Scheduler]
+            Worker[Worker Nodes]
+            Monitor[Monitor]
+        end
+
+        subgraph "📝 POP - Prompt Operations Platform"
+            PromptMgr[Prompt Manager]
+            TemplateEngine[Template Engine]
+            Evaluator[Evaluator]
+            Deployer[Deployment Manager]
+        end
+
+        subgraph "💰 CAS - Cost & Allocation Service"
+            Router[Provider Router]
+            BudgetMgr[Budget Manager]
+            QuotaMgr[Quota Manager]
+            CacheMgr[Cache Manager]
+            Optimizer[Cost Optimizer]
+            Bandit[Multi-Armed Bandit]
+        end
+
+        subgraph "🔍 SCL - Security & Compliance Layer"
+            Redactor[Data Redactor]
+            Auditor[Audit Logger]
+            Compliance[Compliance Engine]
+        end
+
+        subgraph "📊 AOS - Analytics & Observability Service"
+            TraceCollector[Trace Collector]
+            Analyzer[Trace Analyzer]
+            Replayer[Replay Engine]
+            Dashboard[Analytics Dashboard]
+        end
+    end
+
+    %% External AI Providers
+    subgraph "🤖 AI Providers"
+        OpenAI[OpenAI GPT-4]
+        Anthropic[Anthropic Claude]
+        Google[Google Gemini]
+        Cohere[Cohere]
+        Custom[Custom Models]
+    end
+
+    %% Data Layer
+    subgraph "💾 Data Layer"
+        Postgres[(PostgreSQL)]
+        Redis[(Redis Cache)]
+        ClickHouse[(ClickHouse Analytics)]
+        NATS[NATS Messaging]
+    end
+
+    %% User Interactions
+    User --> CLI
+    User --> WebUI
+    User --> SDK
+
+    %% CLI Operations
+    CLI --> CP
+    CLI --> PromptMgr
+    CLI --> BudgetMgr
+    CLI --> TraceCollector
+
+    %% SDK Integration
+    SDK --> CP
+    SDK --> PromptMgr
+    SDK --> CAS
+
+    %% AOR Workflow
+    CP --> Scheduler
+    Scheduler --> Worker
+    Worker --> Monitor
+    Monitor --> CP
+
+    %% POP Operations
+    PromptMgr --> TemplateEngine
+    TemplateEngine --> Evaluator
+    Evaluator --> Deployer
+
+    %% CAS Intelligence
+    Router --> Bandit
+    Bandit --> Router
+    Router --> OpenAI
+    Router --> Anthropic
+    Router --> Google
+    Router --> Cohere
+    Router --> Custom
+
+    BudgetMgr --> QuotaMgr
+    QuotaMgr --> CacheMgr
+    CacheMgr --> Optimizer
+
+    %% Security Layer
+    Redactor --> Auditor
+    Auditor --> Compliance
+
+    %% Analytics Flow
+    TraceCollector --> Analyzer
+    Analyzer --> Replayer
+    Replayer --> Dashboard
+
+    %% Data Connections
+    CP --> Postgres
+    CP --> Redis
+    CP --> NATS
+
+    PromptMgr --> Postgres
+    BudgetMgr --> Postgres
+    QuotaMgr --> Redis
+    CacheMgr --> Redis
+
+    TraceCollector --> ClickHouse
+    Analyzer --> ClickHouse
+
+    Worker --> NATS
+    Monitor --> NATS
+
+    %% Cross-Service Communication
+    CP -.-> CAS
+    Worker -.-> SCL
+    Router -.-> AOS
+    PromptMgr -.-> SCL
+
+    %% Styling
+    classDef userInterface fill:#4A90E2,stroke:#000000,stroke-width:2px,color:#FFFFFF
+    classDef coreService fill:#7ED321,stroke:#000000,stroke-width:2px,color:#000000
+    classDef aiProvider fill:#F5A623,stroke:#000000,stroke-width:2px,color:#000000
+    classDef dataStore fill:#50E3C2,stroke:#000000,stroke-width:2px,color:#000000
+    classDef security fill:#D0021B,stroke:#000000,stroke-width:2px,color:#FFFFFF
+    classDef analytics fill:#9013FE,stroke:#000000,stroke-width:2px,color:#FFFFFF
+
+    class User,CLI,WebUI,SDK userInterface
+    class CP,Scheduler,Worker,Monitor,PromptMgr,TemplateEngine,Router,BudgetMgr coreService
+    class OpenAI,Anthropic,Google,Cohere,Custom aiProvider
+    class Postgres,Redis,ClickHouse,NATS dataStore
+    class Redactor,Auditor,Compliance security
+```
 
 ## 🚀 Quick Start
 
