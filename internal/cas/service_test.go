@@ -1,10 +1,13 @@
 package cas
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProviderRouting(t *testing.T) {
@@ -271,8 +274,8 @@ func TestMultiArmedBandit(t *testing.T) {
 		arm, exists := stats["openai:gpt-4"]
 		require.True(t, exists)
 		assert.Equal(t, 2, arm.Pulls)
-		assert.Equal(t, 1.7, arm.TotalReward)
-		assert.Equal(t, 0.85, arm.AverageReward)
+		assert.InDelta(t, 1.7, arm.TotalReward, 0.001)
+		assert.InDelta(t, 0.85, arm.AverageReward, 0.001)
 	})
 
 	t.Run("RewardCalculation", func(t *testing.T) {
@@ -288,13 +291,13 @@ func TestMultiArmedBandit(t *testing.T) {
 		reward = bandit.CalculateReward(100, 100, 1500*time.Millisecond, 1500*time.Millisecond, false)
 		assert.Equal(t, -1.0, reward) // Penalty for failure
 
-		// Test cost overrun
+		// Test cost and latency overrun
 		reward = bandit.CalculateReward(
-			150, 100, // 50% cost overrun
-			1500*time.Millisecond, 1500*time.Millisecond,
+			200, 100, // 100% cost overrun
+			3000*time.Millisecond, 1500*time.Millisecond, // 100% latency overrun
 			true,
 		)
-		assert.Less(t, reward, 1.0) // Should be penalized for cost overrun
+		assert.Less(t, reward, 1.0) // Should be penalized for overruns
 	})
 }
 

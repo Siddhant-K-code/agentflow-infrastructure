@@ -4,7 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPromptTemplateValidation(t *testing.T) {
@@ -72,7 +74,7 @@ func TestPromptRendering(t *testing.T) {
 	renderer := NewTemplateRenderer()
 
 	t.Run("BasicRendering", func(t *testing.T) {
-		template := "Hello {{name}}, your score is {{score}}"
+		template := "Hello {{.name}}, your score is {{.score}}"
 		data := map[string]interface{}{
 			"name":  "Alice",
 			"score": 95,
@@ -84,7 +86,7 @@ func TestPromptRendering(t *testing.T) {
 	})
 
 	t.Run("TemplateWithFunctions", func(t *testing.T) {
-		template := "Hello {{upper name}}, your message: {{trim message}}"
+		template := "Hello {{upper .name}}, your message: {{trim .message}}"
 		data := map[string]interface{}{
 			"name":    "alice",
 			"message": "  Hello World  ",
@@ -96,7 +98,7 @@ func TestPromptRendering(t *testing.T) {
 	})
 
 	t.Run("TemplateValidation", func(t *testing.T) {
-		template := "Hello {{name}}, your score is {{score}}"
+		template := "Hello {{.name}}, your score is {{.score}}"
 		schema := Schema{
 			Type: "object",
 			Properties: map[string]Property{

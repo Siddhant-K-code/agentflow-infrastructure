@@ -74,6 +74,18 @@ AgentFlow provides a complete infrastructure for building, deploying, and managi
    make install-cli
    ```
 
+### Using Pre-built Container Images
+
+AgentFlow publishes container images to GitHub Container Registry:
+
+- **Control Plane**: `ghcr.io/siddhant-k-code/agentflow-infrastructure/agentflow-control-plane:latest`
+- **Worker**: `ghcr.io/siddhant-k-code/agentflow-infrastructure/agentflow-worker:latest`
+
+**Run with pre-built images**:
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
 4. **Configure the CLI**:
    ```bash
    agentctl config init

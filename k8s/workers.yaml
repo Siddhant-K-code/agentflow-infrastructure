@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: worker
-        image: siddhantk/agentflow-worker:latest
+        image: ghcr.io/siddhant-k-code/agentflow-infrastructure/agentflow-worker:latest
         env:
         - name: DB_PASSWORD
           valueFrom:

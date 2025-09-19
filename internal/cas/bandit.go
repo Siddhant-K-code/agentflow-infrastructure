@@ -1,6 +1,8 @@
 package cas
 
 import (
+	"context"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -89,10 +91,9 @@ func (mab *MultiArmedBandit) UpdateReward(providerName, modelName string, reward
 		arm = mab.arms[key]
 	}
 
+	arm.Pulls++
 	arm.TotalReward += reward
-	if arm.Pulls > 0 {
-		arm.AverageReward = arm.TotalReward / float64(arm.Pulls)
-	}
+	arm.AverageReward = arm.TotalReward / float64(arm.Pulls)
 }
 
 // CalculateReward calculates reward based on performance metrics
@@ -106,13 +107,13 @@ func (mab *MultiArmedBandit) CalculateReward(actualCost, estimatedCost int64, ac
 	// Cost accuracy bonus/penalty
 	if estimatedCost > 0 {
 		costAccuracy := 1.0 - math.Abs(float64(actualCost-estimatedCost))/float64(estimatedCost)
-		reward += costAccuracy * 0.3
+		reward += (costAccuracy - 0.5) * 0.6 // Penalty for inaccuracy
 	}
 
 	// Latency accuracy bonus/penalty
 	if estimatedLatency > 0 {
 		latencyAccuracy := 1.0 - math.Abs(float64(actualLatency-estimatedLatency))/float64(estimatedLatency)
-		reward += latencyAccuracy * 0.3
+		reward += (latencyAccuracy - 0.5) * 0.6 // Penalty for inaccuracy
 	}
 
 	// Cost efficiency bonus

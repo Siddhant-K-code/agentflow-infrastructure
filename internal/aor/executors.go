@@ -1,14 +1,14 @@
 package aor
 
 import (
-	"github.com/google/uuid"
 	"context"
 	"fmt"
 	"log"
 	"time"
+
 )
 
-// LLMExecutor handles LLM node execution
+// LLMExecutor handles LLM-based tasks
 type LLMExecutor struct {
 	worker *Worker
 }
@@ -20,42 +20,37 @@ func NewLLMExecutor(worker *Worker) *LLMExecutor {
 func (e *LLMExecutor) Execute(ctx context.Context, task *Task) (*TaskResult, error) {
 	start := time.Now()
 	
-	// Mock LLM execution for now
-	// In a real implementation, this would:
-	// 1. Resolve prompt from POP
-	// 2. Apply context from SCL
-	// 3. Route through CAS for provider selection
-	// 4. Execute LLM call
-	// 5. Track costs and tokens
-	
-	log.Printf("Executing LLM task %s with prompt %s", task.ID, task.Node.Config.PromptRef)
+	promptRef := ""
+	if task.Node != nil && task.Node.Config != nil {
+		promptRef, _ = task.Node.Config["prompt_ref"].(string)
+	}
+	log.Printf("Executing LLM task %s with prompt %s", task.ID, promptRef)
 	
 	// Simulate processing time
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case <-time.After(2 * time.Second):
-		// Continue
+	case <-time.After(100 * time.Millisecond):
 	}
 	
-	// Mock response
-	output := map[string]interface{}{
-		"response": fmt.Sprintf("Mock LLM response for task %s", task.ID),
-		"model":    "gpt-4",
-		"latency_ms": time.Since(start).Milliseconds(),
-	}
-	
+	// Mock successful execution
 	return &TaskResult{
 		TaskID:           task.ID,
-		Status:           StepStatusSucceeded,
-		Output:           output,
-		CostCents:        150, // Mock cost
+		Status:           TaskStatusSucceeded,
+		Output:           map[string]interface{}{"response": "Mock LLM response"},
+		CostCents:        15,
 		TokensPrompt:     100,
 		TokensCompletion: 50,
+		ExecutedAt:       time.Now(),
+		Duration:         time.Since(start),
 	}, nil
 }
 
-// ToolExecutor handles tool node execution
+func (e *LLMExecutor) CanHandle(stepType string) bool {
+	return stepType == "llm"
+}
+
+// ToolExecutor handles tool-based tasks
 type ToolExecutor struct {
 	worker *Worker
 }
@@ -67,74 +62,102 @@ func NewToolExecutor(worker *Worker) *ToolExecutor {
 func (e *ToolExecutor) Execute(ctx context.Context, task *Task) (*TaskResult, error) {
 	start := time.Now()
 	
-	log.Printf("Executing tool task %s with tool %s", task.ID, task.Node.Config.ToolName)
+	toolName := ""
+	if task.Node != nil && task.Node.Config != nil {
+		toolName, _ = task.Node.Config["tool_name"].(string)
+	}
+	log.Printf("Executing tool task %s with tool %s", task.ID, toolName)
 	
 	// Mock tool execution
 	// In a real implementation, this would:
 	// 1. Load tool definition
-	// 2. Execute tool with arguments
-	// 3. Handle tool-specific security and sandboxing
+	// 2. Execute tool with inputs
+	// 3. Return structured output
 	
-	// Simulate processing time
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case <-time.After(1 * time.Second):
-		// Continue
-	}
-	
-	output := map[string]interface{}{
-		"result": fmt.Sprintf("Mock tool result for %s", task.Node.Config.ToolName),
-		"tool":   task.Node.Config.ToolName,
-		"latency_ms": time.Since(start).Milliseconds(),
+	case <-time.After(50 * time.Millisecond):
 	}
 	
 	return &TaskResult{
-		TaskID:    task.ID,
-		Status:    StepStatusSucceeded,
-		Output:    output,
-		CostCents: 10, // Tools typically cheaper than LLM calls
+		TaskID:     task.ID,
+		Status:     TaskStatusSucceeded,
+		Output:     map[string]interface{}{"result": fmt.Sprintf("Tool %s executed successfully", toolName)},
+		CostCents:  5,
+		ExecutedAt: time.Now(),
+		Duration:   time.Since(start),
 	}, nil
 }
 
-// FunctionExecutor handles function node execution
-type FunctionExecutor struct {
+func (e *ToolExecutor) CanHandle(stepType string) bool {
+	return stepType == "tool"
+}
+
+// HTTPExecutor handles HTTP-based tasks
+type HTTPExecutor struct {
 	worker *Worker
 }
 
-func NewFunctionExecutor(worker *Worker) *FunctionExecutor {
-	return &FunctionExecutor{worker: worker}
+func NewHTTPExecutor(worker *Worker) *HTTPExecutor {
+	return &HTTPExecutor{worker: worker}
 }
 
-func (e *FunctionExecutor) Execute(ctx context.Context, task *Task) (*TaskResult, error) {
+func (e *HTTPExecutor) Execute(ctx context.Context, task *Task) (*TaskResult, error) {
 	start := time.Now()
 	
-	log.Printf("Executing function task %s with function %s", task.ID, task.Node.Config.FunctionName)
+	log.Printf("Executing HTTP task %s", task.ID)
 	
-	// Mock function execution
-	// In a real implementation, this would:
-	// 1. Load WASI function
-	// 2. Execute in sandbox
-	// 3. Handle input/output serialization
-	
-	// Simulate processing time
+	// Mock HTTP request
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case <-time.After(500 * time.Millisecond):
-		// Continue
-	}
-	
-	output := map[string]interface{}{
-		"result": fmt.Sprintf("Mock function result for %s", task.Node.Config.FunctionName),
-		"function": task.Node.Config.FunctionName,
-		"latency_ms": time.Since(start).Milliseconds(),
+	case <-time.After(200 * time.Millisecond):
 	}
 	
 	return &TaskResult{
-		TaskID:    task.ID,
-		Status:    StepStatusSucceeded,
-		Output:    output,
-		CostCents: 5, // Functions typically very cheap
+		TaskID:     task.ID,
+		Status:     TaskStatusSucceeded,
+		Output:     map[string]interface{}{"status": "success", "data": "mock response"},
+		ExecutedAt: time.Now(),
+		Duration:   time.Since(start),
 	}, nil
+}
+
+func (e *HTTPExecutor) CanHandle(stepType string) bool {
+	return stepType == "http"
+}
+
+// ScriptExecutor handles script-based tasks
+type ScriptExecutor struct {
+	worker *Worker
+}
+
+func NewScriptExecutor(worker *Worker) *ScriptExecutor {
+	return &ScriptExecutor{worker: worker}
+}
+
+func (e *ScriptExecutor) Execute(ctx context.Context, task *Task) (*TaskResult, error) {
+	start := time.Now()
+	
+	log.Printf("Executing script task %s", task.ID)
+	
+	// Mock script execution
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-time.After(300 * time.Millisecond):
+	}
+	
+	return &TaskResult{
+		TaskID:     task.ID,
+		Status:     TaskStatusSucceeded,
+		Output:     map[string]interface{}{"exit_code": 0, "stdout": "Script executed successfully"},
+		ExecutedAt: time.Now(),
+		Duration:   time.Since(start),
+	}, nil
+}
+
+func (e *ScriptExecutor) CanHandle(stepType string) bool {
+	return stepType == "script"
 }

@@ -1,0 +1,147 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  GO_VERSION: '1.21'
+  REGISTRY: ghcr.io
+  REGISTRY_USERNAME: siddhant-k-code
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Run tests
+      run: go test ./...
+
+    - name: Build binaries for multiple platforms
+      run: |
+        # Linux AMD64
+        GOOS=linux GOARCH=amd64 go build -o bin/linux-amd64/control-plane ./cmd/control-plane
+        GOOS=linux GOARCH=amd64 go build -o bin/linux-amd64/worker ./cmd/worker
+        GOOS=linux GOARCH=amd64 go build -o bin/linux-amd64/agentctl ./cmd/agentctl
+        
+        # Linux ARM64
+        GOOS=linux GOARCH=arm64 go build -o bin/linux-arm64/control-plane ./cmd/control-plane
+        GOOS=linux GOARCH=arm64 go build -o bin/linux-arm64/worker ./cmd/worker
+        GOOS=linux GOARCH=arm64 go build -o bin/linux-arm64/agentctl ./cmd/agentctl
+        
+        # macOS AMD64
+        GOOS=darwin GOARCH=amd64 go build -o bin/darwin-amd64/control-plane ./cmd/control-plane
+        GOOS=darwin GOARCH=amd64 go build -o bin/darwin-amd64/worker ./cmd/worker
+        GOOS=darwin GOARCH=amd64 go build -o bin/darwin-amd64/agentctl ./cmd/agentctl
+        
+        # macOS ARM64
+        GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/control-plane ./cmd/control-plane
+        GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/worker ./cmd/worker
+        GOOS=darwin GOARCH=arm64 go build -o bin/darwin-arm64/agentctl ./cmd/agentctl
+        
+        # Windows AMD64
+        GOOS=windows GOARCH=amd64 go build -o bin/windows-amd64/control-plane.exe ./cmd/control-plane
+        GOOS=windows GOARCH=amd64 go build -o bin/windows-amd64/worker.exe ./cmd/worker
+        GOOS=windows GOARCH=amd64 go build -o bin/windows-amd64/agentctl.exe ./cmd/agentctl
+
+    - name: Create release archives
+      run: |
+        cd bin
+        for dir in */; do
+          platform=${dir%/}
+          tar -czf agentflow-${platform}.tar.gz -C ${platform} .
+        done
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        # Generate changelog
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "## Changes since $PREVIOUS_TAG" > CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> CHANGELOG.md
+        else
+          echo "## Initial Release" > CHANGELOG.md
+          echo "- First release of AgentFlow Infrastructure" >> CHANGELOG.md
+        fi
+        
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat CHANGELOG.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body: ${{ steps.changelog.outputs.changelog }}
+        files: |
+          bin/*.tar.gz
+        draft: false
+        prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-helm:
+    name: Deploy Helm Chart
+    runs-on: ubuntu-latest
+    needs: create-release
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'alpha') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.12.0'
+
+    - name: Package Helm chart
+      run: |
+        # Create helm chart if it doesn't exist
+        if [ ! -d "helm/agentflow" ]; then
+          mkdir -p helm
+          helm create helm/agentflow
+          
+          # Update Chart.yaml with proper values
+          cat > helm/agentflow/Chart.yaml << EOF
+        apiVersion: v2
+        name: agentflow
+        description: A Helm chart for AgentFlow Infrastructure
+        type: application
+        version: ${GITHUB_REF#refs/tags/v}
+        appVersion: ${GITHUB_REF#refs/tags/v}
+        EOF
+        fi
+        
+        helm package helm/agentflow
+
+    - name: Upload Helm chart to release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: agentflow-*.tgz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

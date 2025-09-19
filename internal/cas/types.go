@@ -3,6 +3,7 @@ package cas
 import (
 	"time"
 
+	"github.com/google/uuid"
 )
 
 // Budget represents spending limits and controls

@@ -1,8 +1,8 @@
 package aor
 
 import (
-	"github.com/google/uuid"
 	"context"
+	"encoding/json"
 	"log"
 	"sync"
 	"time"
@@ -79,7 +79,7 @@ func (m *Monitor) handleResult(msg *nats.Msg) {
 	
 	// Results are already processed by the scheduler
 	// This is mainly for monitoring and metrics
-	msg.Ack()
+	_ = msg.Ack() // Ignore error for monitoring ack
 }
 
 func (m *Monitor) handleHeartbeat(msg *nats.Msg) {
@@ -96,7 +96,7 @@ func (m *Monitor) handleHeartbeat(msg *nats.Msg) {
 	key := "worker:" + workerID
 	m.cp.redis.Set(context.Background(), key, string(msg.Data), 2*time.Minute)
 	
-	msg.Ack()
+	_ = msg.Ack() // Ignore error for heartbeat ack
 }
 
 func (m *Monitor) monitoringLoop(ctx context.Context) {

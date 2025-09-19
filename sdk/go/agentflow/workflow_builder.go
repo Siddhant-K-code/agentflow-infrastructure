@@ -305,6 +305,41 @@ func (nb *NodeBuilder) DependsOn(fromNodeID string) *NodeBuilder {
 	return nb
 }
 
+// Function adds a function node to the workflow
+func (nb *NodeBuilder) Function(id, functionName string, args map[string]interface{}) *NodeBuilder {
+	return nb.wb.addNode(id, "function", map[string]interface{}{
+		"function_name": functionName,
+		"function_args": args,
+	})
+}
+
+// Map adds a map node to the workflow
+func (nb *NodeBuilder) Map(id, inputRef string, subworkflow interface{}) *NodeBuilder {
+	config := map[string]interface{}{
+		"input_ref": inputRef,
+	}
+	if subworkflow != nil {
+		config["subworkflow"] = subworkflow
+	}
+	return nb.wb.addNode(id, "map", config)
+}
+
+// LLM adds an LLM node to the workflow
+func (nb *NodeBuilder) LLM(id, promptRef string, config map[string]interface{}) *NodeBuilder {
+	return nb.wb.addNode(id, "llm", map[string]interface{}{
+		"prompt_ref": promptRef,
+		"config":     config,
+	})
+}
+
+// Reduce adds a reduce node to the workflow
+func (nb *NodeBuilder) Reduce(id, functionName string, args map[string]interface{}) *NodeBuilder {
+	return nb.wb.addNode(id, "reduce", map[string]interface{}{
+		"function_name": functionName,
+		"function_args": args,
+	})
+}
+
 // End returns to the workflow builder
 func (nb *NodeBuilder) End() *WorkflowBuilder {
 	return nb.wb
@@ -343,7 +378,7 @@ func ExampleDocumentAnalysis() *WorkflowBuilder {
 		}).WithInputs(map[string]string{
 			"content": "ingest.output",
 		}).DependsOn("ingest").
-		LLM("analyze", "document_analyzer@3").
+		LLM("analyze", "document_analyzer@3", map[string]interface{}{}).
 		WithQuality("Gold").
 		WithSLA(30 * time.Second).
 		WithInputs(map[string]string{
@@ -353,7 +388,7 @@ func ExampleDocumentAnalysis() *WorkflowBuilder {
 			"max_length": 500,
 		}).WithInputs(map[string]string{
 			"analysis": "analyze.output",
-		}).DependsOn("analyze")
+		}).DependsOn("analyze").End()
 }
 
 // ExampleMapReduce creates an example map-reduce workflow
@@ -361,7 +396,7 @@ func ExampleMapReduce() *WorkflowBuilder {
 	// Sub-workflow for processing individual items
 	itemProcessor := NewWorkflow("process_item").
 		LLM("process", "item_processor@1").
-		WithQuality("Silver")
+		WithQuality("Silver").End()
 
 	return NewWorkflow("batch_processing").
 		Version(1).
@@ -374,5 +409,5 @@ func ExampleMapReduce() *WorkflowBuilder {
 			"operation": "sum",
 		}).WithInputs(map[string]string{
 			"results": "process_items.output",
-		}).DependsOn("process_items")
+		}).DependsOn("process_items").End()
 }

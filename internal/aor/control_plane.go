@@ -1,6 +1,7 @@
 package aor
 
 import (
+	"github.com/google/uuid"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
 	"github.com/nats-io/nats.go"
@@ -65,7 +65,7 @@ func NewControlPlane(cfg *config.Config) (*ControlPlane, error) {
 	}
 
 	// Initialize scheduler and monitor
-	cp.scheduler = NewScheduler(cp)
+	cp.scheduler = NewScheduler(pgDB, redisClient, cp.nats, js)
 	cp.monitor = NewMonitor(cp)
 
 	return cp, nil
@@ -89,10 +89,8 @@ func (cp *ControlPlane) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize streams: %w", err)
 	}
 
-	// Start scheduler
-	if err := cp.scheduler.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start scheduler: %w", err)
-	}
+	// Scheduler doesn't need explicit start in this implementation
+	log.Printf("Scheduler initialized")
 
 	// Start monitor
 	if err := cp.monitor.Start(ctx); err != nil {
@@ -115,10 +113,8 @@ func (cp *ControlPlane) Shutdown(ctx context.Context) error {
 
 	close(cp.shutdown)
 
-	// Shutdown components
-	if cp.scheduler != nil {
-		cp.scheduler.Shutdown(ctx)
-	}
+	// Scheduler doesn't need explicit shutdown in this implementation
+	log.Printf("Scheduler shutdown")
 	if cp.monitor != nil {
 		cp.monitor.Shutdown(ctx)
 	}
@@ -152,7 +148,7 @@ func (cp *ControlPlane) SubmitWorkflow(ctx context.Context, req *RunRequest) (*W
 		ID:             uuid.New(),
 		WorkflowSpecID: spec.ID,
 		Status:         RunStatusQueued,
-		Metadata:       Metadata{
+		Metadata: map[string]interface{}{
 			"inputs":       req.Inputs,
 			"tags":         req.Tags,
 			"budget_cents": req.BudgetCents,
@@ -166,8 +162,8 @@ func (cp *ControlPlane) SubmitWorkflow(ctx context.Context, req *RunRequest) (*W
 	}
 
 	// Submit to scheduler
-	if err := cp.scheduler.SubmitRun(ctx, run, spec); err != nil {
-		return nil, fmt.Errorf("failed to submit run to scheduler: %w", err)
+	if err := cp.scheduler.ScheduleWorkflow(ctx, run); err != nil {
+		return nil, fmt.Errorf("failed to schedule workflow: %w", err)
 	}
 
 	return run, nil

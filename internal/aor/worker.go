@@ -3,7 +3,7 @@ package aor
 import (
 	"github.com/google/uuid"
 	"context"
-	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -23,16 +23,14 @@ type Worker struct {
 	nats     *nats.Conn
 	js       nats.JetStreamContext
 	
-	executors map[NodeType]Executor
+	executors map[ExecutorType]Executor
 	
 	mu       sync.RWMutex
 	running  bool
 	shutdown chan struct{}
 }
 
-type Executor interface {
-	Execute(ctx context.Context, task *Task) (*TaskResult, error)
-}
+// Remove duplicate Executor interface - it's already defined in types.go
 
 func NewWorker(cfg *config.Config) (*Worker, error) {
 	// Initialize database
@@ -67,13 +65,13 @@ func NewWorker(cfg *config.Config) (*Worker, error) {
 		nats:     nc,
 		js:       js,
 		shutdown: make(chan struct{}),
-		executors: make(map[NodeType]Executor),
+		executors: make(map[ExecutorType]Executor),
 	}
 
 	// Initialize executors
-	worker.executors[NodeTypeLLM] = NewLLMExecutor(worker)
-	worker.executors[NodeTypeTool] = NewToolExecutor(worker)
-	worker.executors[NodeTypeFunction] = NewFunctionExecutor(worker)
+	worker.executors[ExecutorTypeLLM] = NewLLMExecutor(worker)
+	worker.executors[ExecutorTypeHTTP] = NewHTTPExecutor(worker)
+	worker.executors[ExecutorTypeScript] = NewScriptExecutor(worker)
 
 	return worker, nil
 }
@@ -143,7 +141,11 @@ func (w *Worker) handleTask(msg *nats.Msg) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Until(task.DeadlineAt))
+	deadline := time.Now().Add(30 * time.Minute)
+	if task.DeadlineAt != nil {
+		deadline = *task.DeadlineAt
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Until(deadline))
 	defer cancel()
 
 	// Update step status to running
@@ -159,7 +161,7 @@ func (w *Worker) handleTask(msg *nats.Msg) {
 		log.Printf("Failed to execute task %s: %v", task.ID, err)
 		result = &TaskResult{
 			TaskID: task.ID,
-			Status: StepStatusFailed,
+			Status: TaskStatusFailed,
 			Error:  err.Error(),
 		}
 	}
@@ -182,16 +184,13 @@ func (w *Worker) handleTask(msg *nats.Msg) {
 }
 
 func (w *Worker) executeTask(ctx context.Context, task *Task) (*TaskResult, error) {
-	executor, exists := w.executors[task.Node.Type]
+	executor, exists := w.executors[ExecutorType(task.Node.Type)]
 	if !exists {
 		return nil, fmt.Errorf("no executor for node type %s", task.Node.Type)
 	}
 
 	// Add retry logic
-	maxRetries := task.Node.Policy.MaxRetries
-	if maxRetries == 0 {
-		maxRetries = 3 // Default
-	}
+	maxRetries := 3 // Default retry count
 
 	var lastErr error
 	for attempt := 1; attempt <= maxRetries; attempt++ {

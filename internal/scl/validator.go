@@ -1,6 +1,7 @@
 package scl
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"

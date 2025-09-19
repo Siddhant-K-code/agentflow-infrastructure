@@ -203,8 +203,12 @@ func (ws *WorkflowService) List(ctx context.Context, opts *ListWorkflowsOptions)
 // Cancel cancels a workflow run
 func (ws *WorkflowService) Cancel(ctx context.Context, runID uuid.UUID) error {
 	path := fmt.Sprintf("/api/v1/workflows/runs/%s/cancel", runID)
-	_, err := ws.client.makeRequest(ctx, "POST", path, nil)
-	return err
+	resp, err := ws.client.makeRequest(ctx, "POST", path, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
 }
 
 // PromptService provides prompt-related operations

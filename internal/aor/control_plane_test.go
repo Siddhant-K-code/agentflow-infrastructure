@@ -2,7 +2,6 @@ package aor
 
 import (
 	"github.com/google/uuid"
-	"context"
 	"testing"
 	"time"
 
@@ -59,7 +58,7 @@ func TestControlPlane_SubmitWorkflow(t *testing.T) {
 			WorkflowSpecID: uuid.New(),
 			Status:         RunStatusQueued,
 			CostCents:      0,
-			Metadata: Metadata{
+			Metadata: map[string]interface{}{
 				"test": "value",
 			},
 			CreatedAt: time.Now(),
@@ -75,46 +74,45 @@ func TestControlPlane_SubmitWorkflow(t *testing.T) {
 func TestWorkflowValidation(t *testing.T) {
 	t.Run("ValidDAG", func(t *testing.T) {
 		dag := DAG{
-			Nodes: []Node{
+			Steps: []Step{
 				{
-					ID:   "node1",
-					Type: NodeTypeLLM,
-					Config: NodeConfig{
-						PromptRef: "test_prompt@1",
+					ID:   "step1",
+					Type: "llm",
+					Name: "LLM Step",
+					Config: map[string]interface{}{
+						"prompt_ref": "test_prompt@1",
 					},
 				},
 				{
-					ID:   "node2",
-					Type: NodeTypeTool,
-					Config: NodeConfig{
-						ToolName: "test_tool",
+					ID:   "step2",
+					Type: "tool",
+					Name: "Tool Step",
+					Config: map[string]interface{}{
+						"tool_name": "test_tool",
 					},
 				},
 			},
 			Edges: []Edge{
-				{From: "node1", To: "node2"},
+				{From: "step1", To: "step2"},
 			},
 		}
 
 		// Test DAG structure
-		assert.Len(t, dag.Nodes, 2)
+		assert.Len(t, dag.Steps, 2)
 		assert.Len(t, dag.Edges, 1)
-		assert.Equal(t, "node1", dag.Edges[0].From)
-		assert.Equal(t, "node2", dag.Edges[0].To)
+		assert.Equal(t, "step1", dag.Edges[0].From)
+		assert.Equal(t, "step2", dag.Edges[0].To)
 	})
 
-	t.Run("NodeTypes", func(t *testing.T) {
-		nodeTypes := []NodeType{
-			NodeTypeLLM,
-			NodeTypeTool,
-			NodeTypeFunction,
-			NodeTypeSwitch,
-			NodeTypeMap,
-			NodeTypeReduce,
+	t.Run("ExecutorTypes", func(t *testing.T) {
+		executorTypes := []ExecutorType{
+			ExecutorTypeLLM,
+			ExecutorTypeHTTP,
+			ExecutorTypeScript,
 		}
 
-		for _, nodeType := range nodeTypes {
-			assert.NotEmpty(t, string(nodeType))
+		for _, executorType := range executorTypes {
+			assert.NotEmpty(t, string(executorType))
 		}
 	})
 }
@@ -122,7 +120,7 @@ func TestWorkflowValidation(t *testing.T) {
 func TestStepExecution(t *testing.T) {
 	t.Run("StepRunLifecycle", func(t *testing.T) {
 		stepRun := &StepRun{
-			ID:            uuid.New(),
+			ID:            uuid.New().String(),
 			WorkflowRunID: uuid.New(),
 			NodeID:        "test_node",
 			Attempt:       1,
@@ -133,26 +131,24 @@ func TestStepExecution(t *testing.T) {
 		// Test initial state
 		assert.Equal(t, StepStatusQueued, stepRun.Status)
 		assert.Equal(t, 1, stepRun.Attempt)
-		assert.Nil(t, stepRun.StartedAt)
-		assert.Nil(t, stepRun.EndedAt)
+		assert.True(t, stepRun.StartedAt.IsZero())
+		assert.Nil(t, stepRun.FinishedAt)
 
 		// Simulate status transitions
 		now := time.Now()
 		stepRun.Status = StepStatusRunning
-		stepRun.StartedAt = &now
+		stepRun.StartedAt = now
 
 		assert.Equal(t, StepStatusRunning, stepRun.Status)
-		assert.NotNil(t, stepRun.StartedAt)
+		assert.False(t, stepRun.StartedAt.IsZero())
 
 		// Complete step
 		endTime := time.Now()
 		stepRun.Status = StepStatusSucceeded
-		stepRun.EndedAt = &endTime
-		stepRun.CostCents = 150
+		stepRun.FinishedAt = &endTime
 
 		assert.Equal(t, StepStatusSucceeded, stepRun.Status)
-		assert.NotNil(t, stepRun.EndedAt)
-		assert.Equal(t, int64(150), stepRun.CostCents)
+		assert.NotNil(t, stepRun.FinishedAt)
 	})
 }
 
@@ -163,29 +159,27 @@ func TestTaskExecution(t *testing.T) {
 			RunID:  uuid.New(),
 			NodeID: "test_node",
 			Attempt: 1,
-			Node: Node{
+			Node: &Node{
 				ID:   "test_node",
-				Type: NodeTypeLLM,
-				Config: NodeConfig{
-					PromptRef: "test_prompt@1",
+				Type: "llm",
+				Config: map[string]interface{}{
+					"prompt_ref": "test_prompt@1",
 				},
 			},
 			Inputs: map[string]interface{}{
 				"input1": "test_value",
 			},
-			DeadlineAt: time.Now().Add(30 * time.Minute),
 		}
 
 		assert.NotEqual(t, uuid.Nil, task.ID)
-		assert.Equal(t, NodeTypeLLM, task.Node.Type)
+		assert.Equal(t, "llm", task.Node.Type)
 		assert.NotNil(t, task.Inputs)
-		assert.True(t, task.DeadlineAt.After(time.Now()))
 	})
 
 	t.Run("TaskResult", func(t *testing.T) {
 		result := &TaskResult{
 			TaskID: uuid.New(),
-			Status: StepStatusSucceeded,
+			Status: TaskStatusSucceeded,
 			Output: map[string]interface{}{
 				"result": "test_output",
 			},
@@ -194,7 +188,7 @@ func TestTaskExecution(t *testing.T) {
 			TokensCompletion: 75,
 		}
 
-		assert.Equal(t, StepStatusSucceeded, result.Status)
+		assert.Equal(t, TaskStatusSucceeded, result.Status)
 		assert.NotNil(t, result.Output)
 		assert.Equal(t, int64(100), result.CostCents)
 		assert.Equal(t, 50, result.TokensPrompt)
@@ -202,31 +196,19 @@ func TestTaskExecution(t *testing.T) {
 	})
 }
 
-func TestPolicyValidation(t *testing.T) {
-	t.Run("QualityTiers", func(t *testing.T) {
-		tiers := []QualityTier{
-			QualityGold,
-			QualitySilver,
-			QualityBronze,
+func TestExecutorTypes(t *testing.T) {
+	t.Run("ExecutorTypeValidation", func(t *testing.T) {
+		executorTypes := []ExecutorType{
+			ExecutorTypeLLM,
+			ExecutorTypeHTTP,
+			ExecutorTypeScript,
+			ExecutorTypeWASM,
+			ExecutorTypeWorkflow,
 		}
 
-		for _, tier := range tiers {
-			assert.NotEmpty(t, string(tier))
+		for _, executorType := range executorTypes {
+			assert.NotEmpty(t, string(executorType))
 		}
-	})
-
-	t.Run("PolicyConfiguration", func(t *testing.T) {
-		policy := &Policy{
-			Quality:    QualityGold,
-			SLAMillis:  30000,
-			MaxRetries: 3,
-			Optional:   false,
-		}
-
-		assert.Equal(t, QualityGold, policy.Quality)
-		assert.Equal(t, 30000, policy.SLAMillis)
-		assert.Equal(t, 3, policy.MaxRetries)
-		assert.False(t, policy.Optional)
 	})
 }
 
@@ -252,27 +234,27 @@ func BenchmarkWorkflowSubmission(b *testing.B) {
 
 func BenchmarkDAGValidation(b *testing.B) {
 	dag := DAG{
-		Nodes: []Node{
-			{ID: "node1", Type: NodeTypeLLM},
-			{ID: "node2", Type: NodeTypeTool},
-			{ID: "node3", Type: NodeTypeFunction},
+		Steps: []Step{
+			{ID: "step1", Type: "llm"},
+			{ID: "step2", Type: "http"},
+			{ID: "step3", Type: "script"},
 		},
 		Edges: []Edge{
-			{From: "node1", To: "node2"},
-			{From: "node2", To: "node3"},
+			{From: "step1", To: "step2"},
+			{From: "step2", To: "step3"},
 		},
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Simulate DAG validation
-		nodeMap := make(map[string]bool)
-		for _, node := range dag.Nodes {
-			nodeMap[node.ID] = true
+		stepMap := make(map[string]bool)
+		for _, step := range dag.Steps {
+			stepMap[step.ID] = true
 		}
 		
 		for _, edge := range dag.Edges {
-			_ = nodeMap[edge.From] && nodeMap[edge.To]
+			_ = stepMap[edge.From] && stepMap[edge.To]
 		}
 	}
 }

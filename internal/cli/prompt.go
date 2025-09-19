@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"

@@ -21,7 +21,7 @@ help:
 	@echo "  fmt           - Format code"
 
 # Variables
-DOCKER_REGISTRY ?= siddhantk
+DOCKER_REGISTRY ?= ghcr.io/siddhant-k-code/agentflow-infrastructure
 VERSION ?= latest
 NAMESPACE ?= agentflow
 

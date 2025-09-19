@@ -3,6 +3,7 @@ package aos
 import (
 	"time"
 
+	"github.com/google/uuid"
 )
 
 // TraceEvent represents a single event in a workflow execution trace

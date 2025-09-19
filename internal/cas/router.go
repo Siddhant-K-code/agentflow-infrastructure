@@ -1,6 +1,9 @@
 package cas
 
 import (
+	"github.com/google/uuid"
+	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -226,7 +229,7 @@ func (pr *ProviderRouter) isProviderSuitableForQuality(provider ProviderConfig, 
 
 func (pr *ProviderRouter) getQualityScore(provider ProviderConfig, qualityTier QualityTier) float64 {
 	// Mock quality scoring based on provider and model
-	baseScore := 0.5
+	var baseScore float64 = 0.5
 
 	// Provider-specific scoring
 	switch provider.ProviderName {

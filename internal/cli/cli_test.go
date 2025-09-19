@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"encoding/json"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRootCommand(t *testing.T) {
@@ -296,9 +297,15 @@ func TestFlagValidation(t *testing.T) {
 		submitCmd := findSubcommand(cmd, "submit")
 		require.NotNil(t, submitCmd)
 
-		// Test missing required flag
-		submitCmd.SetArgs([]string{})
-		err := submitCmd.Execute()
+		// Test missing required flag - cobra should handle this automatically
+		cmd.SetArgs([]string{"submit"}) // Call submit with no flags
+		
+		// Capture output to avoid printing to console
+		var buf bytes.Buffer
+		cmd.SetOut(&buf)
+		cmd.SetErr(&buf)
+		
+		err := cmd.Execute()
 		assert.Error(t, err)
 	})
 
@@ -511,6 +518,12 @@ func NewWorkflowCommand() *cobra.Command {
 		Use:   "submit",
 		Short: "Submit a new workflow",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Check required flags
+			file, _ := cmd.Flags().GetString("file")
+			orgID, _ := cmd.Flags().GetString("org-id")
+			if file == "" || orgID == "" {
+				return fmt.Errorf("required flags missing")
+			}
 			return nil
 		},
 	}

@@ -1,0 +1,140 @@
+project_name: agentflow
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: agentctl
+    main: ./cmd/agentctl
+    binary: agentctl
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+  - id: control-plane
+    main: ./cmd/control-plane
+    binary: control-plane
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+  - id: worker
+    main: ./cmd/worker
+    binary: worker
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: agentctl
+    builds:
+      - agentctl
+    name_template: "agentctl_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
+  - id: server-components
+    builds:
+      - control-plane
+      - worker
+    name_template: "agentflow-server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - '^style:'
+      - '^refactor:'
+
+release:
+  github:
+    owner: Siddhant-K-code
+    name: agentflow-infrastructure
+  draft: false
+  prerelease: auto
+  name_template: "AgentFlow v{{ .Version }}"
+  header: |
+    ## AgentFlow Infrastructure {{ .Version }}
+    
+    This release includes the complete five-pillar agent orchestration platform.
+  footer: |
+    ## Container Images
+    
+    The following container images are available for this release:
+    
+    - `ghcr.io/siddhant-k-code/agentflow-infrastructure/agentflow-control-plane:{{ .Version }}`
+    - `ghcr.io/siddhant-k-code/agentflow-infrastructure/agentflow-worker:{{ .Version }}`
+    
+    ## Installation
+    
+    ### CLI (agentctl)
+    
+    **Linux/macOS:**
+    ```bash
+    curl -sSL https://github.com/Siddhant-K-code/agentflow-infrastructure/releases/download/{{ .Tag }}/agentctl_{{ .Version }}_{{ .Os }}_{{ .Arch }}.tar.gz | tar xz
+    sudo mv agentctl /usr/local/bin/
+    ```
+    
+    **Windows:**
+    Download the appropriate `.zip` file from the assets below.
+
+brews:
+  - name: agentctl
+    ids:
+      - agentctl
+    repository:
+      owner: Siddhant-K-code
+      name: homebrew-tap
+    homepage: https://github.com/Siddhant-K-code/agentflow-infrastructure
+    description: "CLI for AgentFlow Infrastructure - Five-pillar agent orchestration platform"
+    license: "MIT"
+    install: |
+      bin.install "agentctl"
+    test: |
+      system "#{bin}/agentctl version"
