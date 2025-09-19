@@ -59,8 +59,8 @@ AgentFlow provides a complete infrastructure for building, deploying, and managi
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/agentflow/infrastructure.git
-   cd infrastructure
+   git clone https://github.com/Siddhant-K-code/agentflow-infrastructure.git
+   cd agentflow-infrastructure
    ```
 
 2. **Start the development environment**:
@@ -435,8 +435,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## 🆘 Support
 
 - **Documentation**: [docs.agentflow.dev](https://docs.agentflow.dev)
-- **Issues**: [GitHub Issues](https://github.com/agentflow/infrastructure/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/agentflow/infrastructure/discussions)
+- **Issues**: [GitHub Issues](https://github.com/Siddhant-K-code/agentflow-infrastructure/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Siddhant-K-code/agentflow-infrastructure/discussions)
 - **Slack**: [AgentFlow Community](https://agentflow.slack.com)
 
 ## 🗺️ Roadmap

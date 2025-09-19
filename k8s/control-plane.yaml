@@ -53,7 +53,7 @@ spec:
     spec:
       containers:
       - name: control-plane
-        image: agentflow/control-plane:latest
+        image: siddhantk/agentflow-control-plane:latest
         ports:
         - containerPort: 8080
         env:

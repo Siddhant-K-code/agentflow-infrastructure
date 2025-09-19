@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/agentflow/infrastructure/internal/aor"
-	"github.com/agentflow/infrastructure/internal/config"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/aor"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 )
 
 func main() {

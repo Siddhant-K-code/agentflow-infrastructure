@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: worker
-        image: agentflow/worker:latest
+        image: siddhantk/agentflow-worker:latest
         env:
         - name: DB_PASSWORD
           valueFrom:

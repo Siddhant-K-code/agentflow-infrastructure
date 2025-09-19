@@ -1,11 +1,9 @@
 package scl
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
 )
 
 type PolicyEngine struct {

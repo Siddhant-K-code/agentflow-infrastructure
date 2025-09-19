@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -220,6 +221,7 @@ func runPromptGet(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 {
 		version = args[1]
 	}
+	_ = version
 
 	output, _ := cmd.Flags().GetString("output")
 

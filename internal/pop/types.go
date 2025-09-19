@@ -3,7 +3,6 @@ package pop
 import (
 	"time"
 
-	"github.com/google/uuid"
 )
 
 // PromptTemplate represents a versioned prompt template

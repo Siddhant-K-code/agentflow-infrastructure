@@ -301,9 +301,9 @@ func runTraceDiff(cmd *cobra.Command, args []string) error {
 	runID1 := args[0]
 	runID2 := args[1]
 	output, _ := cmd.Flags().GetString("output")
-	compareCosts, _ := cmd.Flags().GetBool("costs")
-	compareLatency, _ := cmd.Flags().GetBool("latency")
-	compareOutputs, _ := cmd.Flags().GetBool("outputs")
+	_, _ = cmd.Flags().GetBool("costs")
+	_, _ = cmd.Flags().GetBool("latency")
+	_, _ = cmd.Flags().GetBool("outputs")
 
 	fmt.Printf("Comparing workflow runs:\n")
 	fmt.Printf("  Run 1: %s\n", runID1)

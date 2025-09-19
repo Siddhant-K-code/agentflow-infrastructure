@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/agentflow/infrastructure/internal/config"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 )
 
 type ClickHouseDB struct {

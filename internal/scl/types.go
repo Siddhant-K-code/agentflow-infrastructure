@@ -3,7 +3,6 @@ package scl
 import (
 	"time"
 
-	"github.com/google/uuid"
 )
 
 // ContextBundle represents a processed and validated context bundle

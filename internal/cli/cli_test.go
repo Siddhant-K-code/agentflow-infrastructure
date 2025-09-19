@@ -1,8 +1,8 @@
 package cli
 
 import (
+	"encoding/json"
 	"bytes"
-	"context"
 	"io"
 	"os"
 	"strings"
@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRootCommand(t *testing.T) {

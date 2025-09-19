@@ -1,14 +1,13 @@
 package aor
 
 import (
+	"github.com/google/uuid"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 )
 
 type Scheduler struct {

@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agentflow/infrastructure/internal/config"
-	"github.com/agentflow/infrastructure/internal/db"
 	"github.com/google/uuid"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 )
@@ -220,7 +220,7 @@ func (cp *ControlPlane) CancelWorkflowRun(ctx context.Context, runID uuid.UUID) 
 	}
 
 	msgData, _ := json.Marshal(cancelMsg)
-	if err := cp.js.Publish("agentflow.signals", msgData); err != nil {
+	if _, err := cp.js.Publish("agentflow.signals", msgData); err != nil {
 		log.Printf("Failed to send cancellation signal: %v", err)
 	}
 

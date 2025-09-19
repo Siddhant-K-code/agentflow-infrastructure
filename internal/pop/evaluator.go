@@ -1,14 +1,12 @@
 package pop
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/agentflow/infrastructure/internal/db"
+	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
 )
 
 type Evaluator struct {
@@ -149,9 +147,9 @@ func (e *Evaluator) scoreLLMJudge(actual interface{}, expected Expected, config 
 	// Mock LLM judge implementation
 	// In production, this would call an LLM to evaluate the output
 	
-	rubric, ok := config["rubric"].(string)
+	_, ok := config["rubric"].(string)
 	if !ok {
-		rubric = "Evaluate if the output is appropriate and helpful"
+		_ = "Evaluate if the output is appropriate and helpful"
 	}
 	
 	// Mock scoring logic

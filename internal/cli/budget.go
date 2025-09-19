@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -247,7 +248,7 @@ func runBudgetList(cmd *cobra.Command, args []string) error {
 }
 
 func runBudgetStatus(cmd *cobra.Command, args []string) error {
-	project, _ := cmd.Flags().GetString("project")
+	_, _ = cmd.Flags().GetString("project")
 	output, _ := cmd.Flags().GetString("output")
 
 	// Mock current budget status

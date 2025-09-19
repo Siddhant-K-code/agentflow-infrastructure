@@ -1,13 +1,10 @@
 package pop
 
 import (
-	"context"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPromptTemplateValidation(t *testing.T) {
@@ -314,7 +311,7 @@ func TestEvaluator(t *testing.T) {
 			"threshold": 0.7,
 		}
 
-		score, passed, err := evaluator.scoreEmbedding(actual, expected, config)
+		score, _, err := evaluator.scoreEmbedding(actual, expected, config)
 		require.NoError(t, err)
 		assert.Greater(t, score, 0.0)
 		assert.LessOrEqual(t, score, 1.0)

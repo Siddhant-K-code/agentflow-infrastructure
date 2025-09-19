@@ -21,7 +21,7 @@ help:
 	@echo "  fmt           - Format code"
 
 # Variables
-DOCKER_REGISTRY ?= agentflow
+DOCKER_REGISTRY ?= siddhantk
 VERSION ?= latest
 NAMESPACE ?= agentflow
 
@@ -53,14 +53,14 @@ clean:
 # Build Docker images
 docker-build:
 	@echo "Building Docker images..."
-	docker build -f Dockerfile.control-plane -t $(DOCKER_REGISTRY)/control-plane:$(VERSION) .
-	docker build -f Dockerfile.worker -t $(DOCKER_REGISTRY)/worker:$(VERSION) .
+	docker build -f Dockerfile.control-plane -t $(DOCKER_REGISTRY)/agentflow-control-plane:$(VERSION) .
+	docker build -f Dockerfile.worker -t $(DOCKER_REGISTRY)/agentflow-worker:$(VERSION) .
 
 # Push Docker images
 docker-push: docker-build
 	@echo "Pushing Docker images..."
-	docker push $(DOCKER_REGISTRY)/control-plane:$(VERSION)
-	docker push $(DOCKER_REGISTRY)/worker:$(VERSION)
+	docker push $(DOCKER_REGISTRY)/agentflow-control-plane:$(VERSION)
+	docker push $(DOCKER_REGISTRY)/agentflow-worker:$(VERSION)
 
 # Deploy to Kubernetes
 k8s-deploy:
