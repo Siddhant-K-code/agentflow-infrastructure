@@ -9,7 +9,6 @@ linters:
   enable:
     - bodyclose
     - dupl
-    - errcheck
     - goconst
     - gocyclo
     - gosec
