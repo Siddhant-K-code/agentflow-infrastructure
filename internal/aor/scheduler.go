@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
-	"github.com/nats-io/nats.go"
-	"github.com/redis/go-redis/v9"
+	nats "github.com/nats-io/nats.go"
+	redis "github.com/redis/go-redis/v9"
 )
 
 type Scheduler struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
+	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 )
