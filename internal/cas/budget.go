@@ -182,7 +182,7 @@ func (bm *BudgetManager) ListBudgets(ctx context.Context, orgID uuid.UUID) ([]Bu
 	if err != nil {
 		return nil, fmt.Errorf("failed to list budgets: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	budgets := make([]Budget, 0)
 	for rows.Next() {

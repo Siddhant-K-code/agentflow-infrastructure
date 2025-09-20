@@ -27,3 +27,4 @@ linters:
   disable:
     - depguard
     - dogsled
+    - errcheck

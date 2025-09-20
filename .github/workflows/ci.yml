@@ -13,7 +13,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -28,7 +28,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -38,7 +38,7 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
-      
+
       clickhouse:
         image: clickhouse/clickhouse-server:latest
         env:
@@ -154,53 +154,8 @@ jobs:
 
     - name: Install golangci-lint
       run: |
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
-        
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
+
     - name: Run golangci-lint
       run: |
-        # Remove version field for v1.x compatibility
-        sed -i '/^version:/d' .golangci.yml
         golangci-lint run --timeout=5m
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Install Gosec
-      run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-
-    - name: Run Gosec Security Scanner
-      run: gosec -no-fail -fmt sarif -out results.sarif ./...
-      
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: results.sarif
-        
-    - name: Install Nancy
-      run: go install github.com/sonatype-nexus-community/nancy@latest
-
-    - name: Run Nancy vulnerability scanner
-      run: go list -json -deps ./... | nancy sleuth

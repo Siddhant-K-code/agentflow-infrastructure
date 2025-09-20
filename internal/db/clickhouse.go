@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 )
 
 type ClickHouseDB struct {
-	clickhouse.Conn
+	driver.Conn
 }
 
 func NewClickHouseDB(cfg *config.ClickHouseConfig) (*ClickHouseDB, error) {
@@ -59,7 +60,7 @@ func (db *ClickHouseDB) InitSchema(ctx context.Context, schemaPath string) error
 	}
 
 	for _, query := range queries {
-		if err := db.Exec(ctx, query); err != nil {
+		if err := db.Conn.Exec(ctx, query); err != nil {
 			return fmt.Errorf("failed to execute query %q: %w", query, err)
 		}
 	}

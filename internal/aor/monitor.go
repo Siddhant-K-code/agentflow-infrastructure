@@ -128,7 +128,7 @@ func (m *Monitor) checkStuckTasks(ctx context.Context) {
 		log.Printf("Failed to query stuck tasks: %v", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var stepID, runID string
