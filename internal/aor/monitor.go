@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nats-io/nats.go"
+	nats "github.com/nats-io/nats.go"
 )
 
 type Monitor struct {

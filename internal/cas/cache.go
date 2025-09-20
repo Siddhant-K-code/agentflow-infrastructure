@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 )
 
 type CacheManager struct {
