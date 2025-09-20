@@ -60,7 +60,7 @@ func (db *ClickHouseDB) InitSchema(ctx context.Context, schemaPath string) error
 	}
 
 	for _, query := range queries {
-		if err := db.Conn.Exec(ctx, query); err != nil {
+		if err := db.Exec(ctx, query); err != nil {
 			return fmt.Errorf("failed to execute query %q: %w", query, err)
 		}
 	}

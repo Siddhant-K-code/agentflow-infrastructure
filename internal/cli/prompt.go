@@ -107,7 +107,7 @@ func runPromptCreate(cmd *cobra.Command, args []string) error {
 		if err := validateFilePath(templateFile); err != nil {
 			return fmt.Errorf("invalid template file path: %w", err)
 		}
-		data, err := os.ReadFile(templateFile)
+		data, err := os.ReadFile(templateFile) // #nosec G304 - path validated above
 		if err != nil {
 			return fmt.Errorf("failed to read template file: %w", err)
 		}
@@ -128,7 +128,7 @@ func runPromptCreate(cmd *cobra.Command, args []string) error {
 		if err := validateFilePath(schemaFile); err != nil {
 			return fmt.Errorf("invalid schema file path: %w", err)
 		}
-		data, err := os.ReadFile(schemaFile)
+		data, err := os.ReadFile(schemaFile) // #nosec G304 - path validated above
 		if err != nil {
 			return fmt.Errorf("failed to read schema file: %w", err)
 		}
@@ -384,7 +384,7 @@ func runPromptTest(cmd *cobra.Command, args []string) error {
 		if err := validateFilePath(inputsFile); err != nil {
 			return fmt.Errorf("invalid inputs file path: %w", err)
 		}
-		data, err := os.ReadFile(inputsFile)
+		data, err := os.ReadFile(inputsFile) // #nosec G304 - path validated above
 		if err != nil {
 			return fmt.Errorf("failed to read inputs file: %w", err)
 		}

@@ -301,11 +301,11 @@ func (s *Service) processBatchGroup(ctx context.Context, orgID uuid.UUID, operat
 func (s *Service) Shutdown(ctx context.Context) error {
 	// Flush any pending operations
 	if s.cache != nil {
-		s.cache.Flush(ctx)
+		_ = s.cache.Flush(ctx) // Ignore flush error during shutdown
 	}
 
 	if s.quotaMgr != nil {
-		s.quotaMgr.Shutdown(ctx)
+		_ = s.quotaMgr.Shutdown(ctx) // Ignore shutdown error during shutdown
 	}
 
 	return nil

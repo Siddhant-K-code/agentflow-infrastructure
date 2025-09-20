@@ -317,7 +317,7 @@ timeout: 30s
 
 		_, err = tmpFile.WriteString(configContent)
 		require.NoError(t, err)
-		tmpFile.Close()
+		_ = tmpFile.Close() // Ignore close error in test
 
 		// Test config loading
 		config, err := loadConfig(tmpFile.Name())
@@ -338,8 +338,8 @@ timeout: 30s
 func TestEnvironmentVariables(t *testing.T) {
 	t.Run("EnvVarOverrides", func(t *testing.T) {
 		// Set environment variables
-		os.Setenv("AGENTFLOW_API_ENDPOINT", "https://env.example.com")
-		os.Setenv("AGENTFLOW_ORG_ID", "env-org-123")
+		_ = os.Setenv("AGENTFLOW_API_ENDPOINT", "https://env.example.com") // Ignore setenv error in test
+		_ = os.Setenv("AGENTFLOW_ORG_ID", "env-org-123")                   // Ignore setenv error in test
 		defer func() {
 			os.Unsetenv("AGENTFLOW_API_ENDPOINT")
 			os.Unsetenv("AGENTFLOW_ORG_ID")
@@ -388,7 +388,7 @@ func captureOutput(fn func()) string {
 
 	fn()
 
-	w.Close()
+	_ = w.Close() // Ignore close error in test helper
 	os.Stdout = old
 
 	var buf bytes.Buffer

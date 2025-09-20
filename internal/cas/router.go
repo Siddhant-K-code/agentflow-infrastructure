@@ -253,9 +253,10 @@ func (pr *ProviderRouter) getQualityScore(provider ProviderConfig, qualityTier Q
 	}
 
 	// Model-specific adjustments
-	if provider.ModelName == "gpt-4" || provider.ModelName == "claude-3-opus" {
+	switch provider.ModelName {
+	case "gpt-4", "claude-3-opus":
 		baseScore += 0.1
-	} else if provider.ModelName == "gpt-3.5-turbo" || provider.ModelName == "claude-3-sonnet" {
+	case "gpt-3.5-turbo", "claude-3-sonnet":
 		baseScore += 0.05
 	}
 

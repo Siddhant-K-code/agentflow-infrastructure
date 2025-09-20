@@ -181,13 +181,7 @@ func (s *Service) TestPolicy(ctx context.Context, orgID uuid.UUID, req *PolicyTe
 
 	// Convert policy violations
 	for _, violation := range result.Violations {
-		response.Violations = append(response.Violations, PolicyViolation{
-			Rule:       violation.Rule,
-			Severity:   violation.Severity,
-			Message:    violation.Message,
-			Location:   violation.Location,
-			Suggestion: violation.Suggestion,
-		})
+		response.Violations = append(response.Violations, PolicyViolation(violation))
 	}
 
 	return response, nil

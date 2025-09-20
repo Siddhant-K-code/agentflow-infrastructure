@@ -89,7 +89,7 @@ func runWorkflowSubmit(cmd *cobra.Command, args []string) error {
 		if err := validateFilePath(inputsFile); err != nil {
 			return fmt.Errorf("invalid file path: %w", err)
 		}
-		data, err := os.ReadFile(inputsFile)
+		data, err := os.ReadFile(inputsFile) // #nosec G304 - path validated above
 		if err != nil {
 			return fmt.Errorf("failed to read inputs file: %w", err)
 		}
