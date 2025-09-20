@@ -123,10 +123,10 @@ func (w *Worker) Shutdown(ctx context.Context) error {
 		w.nats.Close()
 	}
 	if w.redis != nil {
-		w.redis.Close()
+		_ = w.redis.Close() // Ignore close errors
 	}
 	if w.db != nil {
-		w.db.Close()
+		_ = w.db.Close() // Ignore close errors
 	}
 
 	log.Printf("Worker %s shutdown", w.id)
@@ -137,7 +137,7 @@ func (w *Worker) handleTask(msg *nats.Msg) {
 	var task Task
 	if err := json.Unmarshal(msg.Data, &task); err != nil {
 		log.Printf("Failed to unmarshal task: %v", err)
-		msg.Nak()
+		_ = msg.Nak() // Ignore nak error
 		return
 	}
 
@@ -151,7 +151,7 @@ func (w *Worker) handleTask(msg *nats.Msg) {
 	// Update step status to running
 	if err := w.updateStepStatus(ctx, task.ID, StepStatusRunning, w.id); err != nil {
 		log.Printf("Failed to update step status to running: %v", err)
-		msg.Nak()
+		_ = msg.Nak() // Ignore nak error
 		return
 	}
 
@@ -169,18 +169,18 @@ func (w *Worker) handleTask(msg *nats.Msg) {
 	// Update step with result
 	if err := w.updateStepWithResult(ctx, result); err != nil {
 		log.Printf("Failed to update step with result: %v", err)
-		msg.Nak()
+		_ = msg.Nak() // Ignore nak error
 		return
 	}
 
 	// Publish result
 	if err := w.publishResult(ctx, result); err != nil {
 		log.Printf("Failed to publish result: %v", err)
-		msg.Nak()
+		_ = msg.Nak() // Ignore nak error
 		return
 	}
 
-	msg.Ack()
+	_ = msg.Ack() // Ignore ack error
 }
 
 func (w *Worker) executeTask(ctx context.Context, task *Task) (*TaskResult, error) {
@@ -276,5 +276,5 @@ func (w *Worker) sendHeartbeat(ctx context.Context) {
 	}
 
 	data, _ := json.Marshal(heartbeat)
-	w.js.Publish("agentflow.heartbeats", data)
+	_, _ = w.js.Publish("agentflow.heartbeats", data) // Ignore publish error for heartbeat
 }

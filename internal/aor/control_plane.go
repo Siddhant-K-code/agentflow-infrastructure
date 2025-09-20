@@ -116,7 +116,7 @@ func (cp *ControlPlane) Shutdown(ctx context.Context) error {
 	// Scheduler doesn't need explicit shutdown in this implementation
 	log.Printf("Scheduler shutdown")
 	if cp.monitor != nil {
-		cp.monitor.Shutdown(ctx)
+		_ = cp.monitor.Shutdown(ctx) // Ignore shutdown errors
 	}
 
 	// Close connections
@@ -124,10 +124,10 @@ func (cp *ControlPlane) Shutdown(ctx context.Context) error {
 		cp.nats.Close()
 	}
 	if cp.redis != nil {
-		cp.redis.Close()
+		_ = cp.redis.Close() // Ignore close errors
 	}
 	if cp.db != nil {
-		cp.db.Close()
+		_ = cp.db.Close() // Ignore close errors
 	}
 
 	cp.running = false

@@ -88,21 +88,21 @@ func initConfig() {
 func validateFilePath(path string) error {
 	// Clean the path to resolve any .. or . components
 	cleanPath := filepath.Clean(path)
-	
+
 	// Check for directory traversal attempts
 	if strings.Contains(cleanPath, "..") {
 		return fmt.Errorf("directory traversal not allowed")
 	}
-	
+
 	// Ensure the path is not absolute (starts with /)
 	if filepath.IsAbs(cleanPath) {
 		return fmt.Errorf("absolute paths not allowed")
 	}
-	
+
 	// Additional check for common dangerous patterns
 	if strings.HasPrefix(cleanPath, "/") || strings.HasPrefix(cleanPath, "\\") {
 		return fmt.Errorf("path cannot start with directory separator")
 	}
-	
+
 	return nil
 }
