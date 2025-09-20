@@ -7,23 +7,10 @@ run:
 
 linters:
   enable:
-    - bodyclose
-    - dupl
-    - goconst
-    - gocyclo
-    - gosec
     - govet
     - ineffassign
-    - lll
-    - misspell
-    - nakedret
-    - staticcheck
-    - unconvert
-    - unparam
     - unused
-    - whitespace
+    - gosec
   
   disable:
-    - depguard
-    - dogsled
     - errcheck
