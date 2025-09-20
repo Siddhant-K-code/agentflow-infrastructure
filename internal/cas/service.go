@@ -8,7 +8,7 @@ import (
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 )
 
 type Service struct {
