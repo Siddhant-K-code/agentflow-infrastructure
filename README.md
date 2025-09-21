@@ -1,8 +1,19 @@
-# AgentFlow Infrastructure
+
+
+<img width="1280" height="720" alt="Agentflow banner" src="https://github.com/user-attachments/assets/419f332c-2d10-4be3-aa92-43a36d2a0bd5" />
+
+# AgentFlow
+
+> [!WARNING]
+> 🚧 **WORK IN PROGRESS - NOT PRODUCTION READY**
+> 
+> This project is currently under active development and is **NOT ready for production use**. The codebase is experimental and may contain incomplete features, breaking changes, and stability issues. Use at your own risk for development and testing purposes only.
+> 
+> **Do not deploy this in production environments.**
 
 A comprehensive agent orchestration platform with five interconnected pillars: Agent Orchestration Runtime (AOR), PromptOps Platform (POP), Secure Context Layer (SCL), Agent Observability Stack (AOS), and Cost-Aware Scheduler (CAS).
 
-## 🏗️ Architecture Overview
+## Architecture overview
 
 AgentFlow provides a complete infrastructure for building, deploying, and managing AI agent workflows at scale. The platform is designed with five core pillars:
 
@@ -198,7 +209,7 @@ graph TB
     class Redactor,Auditor,Compliance security
 ```
 
-## 🚀 Quick Start
+## Quick start
 
 ### Prerequisites
 
@@ -302,7 +313,7 @@ The platform includes comprehensive monitoring:
 - Cache hit rates and optimization opportunities
 - Resource utilization and scaling metrics
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 
@@ -357,7 +368,7 @@ make migrate-create
 make migrate-down
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -404,7 +415,7 @@ server:
   port: 8080
 ```
 
-## 🚢 Production Deployment
+## Production Deployment
 
 ### Kubernetes
 
@@ -432,7 +443,7 @@ The platform supports horizontal scaling:
 - **Workers**: Auto-scaling based on queue depth and CPU/memory
 - **Databases**: Use managed services (RDS, Cloud SQL) for production
 
-## 📚 API Reference
+## API Reference
 
 ### Workflow Management
 
@@ -488,7 +499,7 @@ POST /api/v1/budgets
 GET /api/v1/budgets/status
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Unit Tests
 
@@ -523,7 +534,7 @@ sudo apt install k6  # Ubuntu
 k6 run tests/load/workflow_submission.js
 ```
 
-## 🔒 Security
+## Security
 
 ### Authentication
 
