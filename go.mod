@@ -1,6 +1,6 @@
 module github.com/Siddhant-K-code/agentflow-infrastructure
 
-go 1.23
+go 1.24.0
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.15.0
@@ -85,3 +85,5 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace golang.org/x/sys => golang.org/x/sys v0.35.0
