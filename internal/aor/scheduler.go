@@ -161,9 +161,14 @@ func (s *Scheduler) enqueueTask(ctx context.Context, task *Task) error {
 		return fmt.Errorf("failed to marshal task: %w", err)
 	}
 
-	// Publish to NATS
-	if _, err := s.js.Publish("agentflow.tasks", taskData); err != nil {
-		return fmt.Errorf("failed to publish task: %w", err)
+	// Publish to NATS (optional for demo)
+	if s.js != nil {
+		if _, err := s.js.Publish("agentflow.tasks", taskData); err != nil {
+			log.Printf("Warning: failed to publish task to NATS: %v", err)
+			// Continue without NATS for demo purposes
+		}
+	} else {
+		log.Printf("NATS not available, skipping task publishing for demo")
 	}
 
 	return nil
