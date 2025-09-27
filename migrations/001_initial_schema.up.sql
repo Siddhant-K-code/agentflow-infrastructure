@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Organizations table
-CREATE TABLE organizations (
+CREATE TABLE IF NOT EXISTS IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -10,7 +10,7 @@ CREATE TABLE organizations (
 );
 
 -- Projects table
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE projects (
 );
 
 -- AOR: Workflow specifications
-CREATE TABLE workflow_spec (
+CREATE TABLE IF NOT EXISTS workflow_spec (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE workflow_spec (
 );
 
 -- AOR: Workflow runs
-CREATE TABLE workflow_run (
+CREATE TABLE IF NOT EXISTS workflow_run (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     workflow_spec_id UUID NOT NULL REFERENCES workflow_spec(id) ON DELETE CASCADE,
     status TEXT NOT NULL CHECK (status IN ('queued','running','succeeded','failed','canceled','partial-success')),
@@ -44,7 +44,7 @@ CREATE TABLE workflow_run (
 );
 
 -- AOR: Step runs
-CREATE TABLE step_run (
+CREATE TABLE IF NOT EXISTS step_run (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     workflow_run_id UUID NOT NULL REFERENCES workflow_run(id) ON DELETE CASCADE,
     node_id TEXT NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE step_run (
 );
 
 -- POP: Prompt templates
-CREATE TABLE prompt_template (
+CREATE TABLE IF NOT EXISTS prompt_template (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE prompt_template (
 );
 
 -- POP: Evaluation suites
-CREATE TABLE prompt_suite (
+CREATE TABLE IF NOT EXISTS prompt_suite (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE prompt_suite (
 );
 
 -- POP: Prompt deployments
-CREATE TABLE prompt_deployment (
+CREATE TABLE IF NOT EXISTS prompt_deployment (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     prompt_name TEXT NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE prompt_deployment (
 );
 
 -- SCL: Context bundles
-CREATE TABLE context_bundle (
+CREATE TABLE IF NOT EXISTS context_bundle (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     hash TEXT NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE context_bundle (
 );
 
 -- CAS: Budgets
-CREATE TABLE budget (
+CREATE TABLE IF NOT EXISTS budget (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
@@ -123,7 +123,7 @@ CREATE TABLE budget (
 );
 
 -- CAS: Provider configurations
-CREATE TABLE provider_config (
+CREATE TABLE IF NOT EXISTS provider_config (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     provider_name TEXT NOT NULL,
@@ -138,10 +138,10 @@ CREATE TABLE provider_config (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_workflow_run_status ON workflow_run(status);
-CREATE INDEX idx_workflow_run_created_at ON workflow_run(created_at);
-CREATE INDEX idx_step_run_workflow_run_id ON step_run(workflow_run_id);
-CREATE INDEX idx_step_run_status ON step_run(status);
-CREATE INDEX idx_prompt_template_org_name ON prompt_template(org_id, name);
-CREATE INDEX idx_context_bundle_hash ON context_bundle(hash);
-CREATE INDEX idx_budget_org_period ON budget(org_id, period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_workflow_run_status ON workflow_run(status);
+CREATE INDEX IF NOT EXISTS idx_workflow_run_created_at ON workflow_run(created_at);
+CREATE INDEX IF NOT EXISTS idx_step_run_workflow_run_id ON step_run(workflow_run_id);
+CREATE INDEX IF NOT EXISTS idx_step_run_status ON step_run(status);
+CREATE INDEX IF NOT EXISTS idx_prompt_template_org_name ON prompt_template(org_id, name);
+CREATE INDEX IF NOT EXISTS idx_context_bundle_hash ON context_bundle(hash);
+CREATE INDEX IF NOT EXISTS idx_budget_org_period ON budget(org_id, period_start, period_end);
