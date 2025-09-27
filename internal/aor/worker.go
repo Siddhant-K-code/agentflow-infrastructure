@@ -142,32 +142,6 @@ func (w *Worker) run(ctx context.Context) {
 	}
 }
 
-func (w *Worker) Shutdown(ctx context.Context) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if !w.running {
-		return nil
-	}
-
-	close(w.shutdown)
-	w.running = false
-
-	// Close connections
-	if w.nats != nil {
-		w.nats.Close()
-	}
-	if w.redis != nil {
-		_ = w.redis.Close() // Ignore close errors
-	}
-	if w.db != nil {
-		_ = w.db.Close() // Ignore close errors
-	}
-
-	log.Printf("Worker %s shutdown", w.id)
-	return nil
-}
-
 func (w *Worker) handleTask(msg *nats.Msg) {
 	var task Task
 	if err := json.Unmarshal(msg.Data, &task); err != nil {

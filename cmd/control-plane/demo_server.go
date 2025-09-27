@@ -68,9 +68,6 @@ func (s *DemoServer) submitWorkflow(c *gin.Context) {
 		return
 	}
 
-	// Create a demo organization ID
-	orgID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
-
 	run, err := s.controlPlane.SubmitWorkflow(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -193,8 +190,6 @@ func (s *DemoServer) redactContent(c *gin.Context) {
 	redacted := req.Content
 	redactionMap := make(map[string]string)
 
-	// Email redaction
-	emailPattern := `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`
 	// This is a simplified version - in production you'd use proper regex
 
 	// Mock redaction for demo

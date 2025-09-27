@@ -232,91 +232,25 @@ func (cp *ControlPlane) getWorkflowSpec(ctx context.Context, name string, versio
 		OrgID:   uuid.New(),
 		Name:    name,
 		Version: version,
-		DAG: map[string]interface{}{
-			"nodes": []map[string]interface{}{
+		DAG: DAG{
+			Steps: []Step{
 				{
-					"id":   "step1",
-					"type": "llm",
-					"config": map[string]interface{}{
+					ID:   "step1",
+					Type: "llm",
+					Name: "Process Input",
+					Config: map[string]interface{}{
 						"prompt": "Process the input: {{input}}",
 					},
 				},
 			},
 		},
-		CreatedAt: time.Now(),
+		Created: time.Now(),
+		Updated: time.Now(),
 	}, nil
 }
 
 func (cp *ControlPlane) saveWorkflowRun(ctx context.Context, run *WorkflowRun) error {
 	// For demo purposes, just log the workflow run
 	log.Printf("Saving workflow run: %s", run.ID)
-	return nil
-}
-
-func (cp *ControlPlane) initStreams() error {
-	streams := []struct {
-		name     string
-		subjects []string
-	}{
-		{"AGENTFLOW_TASKS", []string{"agentflow.tasks.*"}},
-		{"AGENTFLOW_RESULTS", []string{"agentflow.results.*"}},
-		{"AGENTFLOW_SIGNALS", []string{"agentflow.signals"}},
-	}
-
-	for _, stream := range streams {
-		_, err := cp.js.AddStream(&nats.StreamConfig{
-			Name:     stream.name,
-			Subjects: stream.subjects,
-			MaxAge:   24 * time.Hour,
-		})
-		if err != nil && err != nats.ErrStreamNameAlreadyInUse {
-			return fmt.Errorf("failed to create stream %s: %w", stream.name, err)
-		}
-	}
-
-	return nil
-}
-
-func (cp *ControlPlane) getWorkflowSpec(ctx context.Context, name string, version int) (*WorkflowSpec, error) {
-	query := `SELECT id, org_id, name, version, dag, metadata
-			  FROM workflow_spec WHERE name = $1 AND version = $2`
-
-	var spec WorkflowSpec
-	var dagJSON, metadataJSON []byte
-
-	err := cp.db.QueryRowContext(ctx, query, name, version).Scan(
-		&spec.ID, &spec.OrgID, &spec.Name, &spec.Version, &dagJSON, &metadataJSON,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get workflow spec: %w", err)
-	}
-
-	if err := json.Unmarshal(dagJSON, &spec.DAG); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal DAG: %w", err)
-	}
-
-	if err := json.Unmarshal(metadataJSON, &spec.Metadata); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
-	}
-
-	return &spec, nil
-}
-
-func (cp *ControlPlane) saveWorkflowRun(ctx context.Context, run *WorkflowRun) error {
-	metadataJSON, err := json.Marshal(run.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
-	}
-
-	query := `INSERT INTO workflow_run (id, workflow_spec_id, status, cost_cents, metadata, created_at)
-			  VALUES ($1, $2, $3, $4, $5, $6)`
-
-	_, err = cp.db.ExecContext(ctx, query,
-		run.ID, run.WorkflowSpecID, run.Status, run.CostCents, metadataJSON, run.CreatedAt,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to insert workflow run: %w", err)
-	}
-
 	return nil
 }

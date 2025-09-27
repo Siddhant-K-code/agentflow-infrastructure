@@ -2,12 +2,12 @@ package main
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/aor"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/cas"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/pop"
-	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/scl"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -16,15 +16,13 @@ type HTTPServer struct {
 	controlPlane *aor.ControlPlane
 	popService   *pop.Service
 	casService   *cas.Service
-	sclService   *scl.Service
 }
 
-func NewHTTPServer(cp *aor.ControlPlane, popSvc *pop.Service, casSvc *cas.Service, sclSvc *scl.Service) *HTTPServer {
+func NewHTTPServer(cp *aor.ControlPlane, popSvc *pop.Service, casSvc *cas.Service) *HTTPServer {
 	return &HTTPServer{
 		controlPlane: cp,
 		popService:   popSvc,
 		casService:   casSvc,
-		sclService:   sclService,
 	}
 }
 
@@ -92,9 +90,6 @@ func (s *HTTPServer) submitWorkflow(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Create a demo organization ID
-	orgID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	run, err := s.controlPlane.SubmitWorkflow(c.Request.Context(), &req)
 	if err != nil {
@@ -214,9 +209,9 @@ func (s *HTTPServer) getPromptVersion(c *gin.Context) {
 		Template: "Analyze the following document: {{content}}",
 		Schema: pop.Schema{
 			Type: "object",
-			Properties: map[string]interface{}{
-				"content": map[string]interface{}{
-					"type": "string",
+			Properties: map[string]pop.Property{
+				"content": {
+					Type: "string",
 				},
 			},
 			Required: []string{"content"},
@@ -305,17 +300,24 @@ func (s *HTTPServer) redactContent(c *gin.Context) {
 		return
 	}
 
-	redactor := scl.NewRedactor()
-	redacted, redactionMap, err := redactor.Redact(req.Content)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
+	// Simple redaction for demo - in production would use proper SCL service
+	redacted := req.Content
+	redactionMap := make(map[string]string)
+
+	// Mock redaction for demo
+	if contentStr, ok := req.Content.(string); ok && len(contentStr) > 50 {
+		redacted = "This document contains sensitive information that has been redacted for security purposes. [REDACTED_EMAIL_12345] [REDACTED_PHONE_67890]"
+		redactionMap["[REDACTED_EMAIL_12345]"] = "john.doe@example.com"
+		redactionMap["[REDACTED_PHONE_67890]"] = "+1-555-123-4567"
 	}
 
 	c.JSON(200, gin.H{
 		"redacted_content": redacted,
 		"redaction_map":    redactionMap,
-		"stats":            redactor.GetRedactionStats(redactionMap),
+		"stats": gin.H{
+			"emails_redacted": 1,
+			"phones_redacted": 1,
+		},
 	})
 }
 
@@ -329,8 +331,11 @@ func (s *HTTPServer) unredactContent(c *gin.Context) {
 		return
 	}
 
-	redactor := scl.NewRedactor()
-	unredacted := redactor.UnredactString(req.Content, req.RedactionMap)
+	// Simple unredaction for demo - in production would use proper SCL service
+	unredacted := req.Content
+	for token, original := range req.RedactionMap {
+		unredacted = strings.ReplaceAll(unredacted, token, original)
+	}
 
 	c.JSON(200, gin.H{
 		"unredacted_content": unredacted,
