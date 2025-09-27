@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/aor"
@@ -70,10 +71,12 @@ func (s *DemoServer) submitWorkflow(c *gin.Context) {
 
 	run, err := s.controlPlane.SubmitWorkflow(c.Request.Context(), &req)
 	if err != nil {
+		log.Printf("Error submitting workflow: %v", err)
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("Successfully submitted workflow: %s", run.ID)
 	c.JSON(201, run)
 }
 
