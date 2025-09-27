@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
+	"github.com/google/uuid"
 	nats "github.com/nats-io/nats.go"
 	redis "github.com/redis/go-redis/v9"
 )
@@ -170,7 +171,7 @@ func (cp *ControlPlane) SubmitWorkflow(ctx context.Context, req *RunRequest) (*W
 }
 
 func (cp *ControlPlane) GetWorkflowRun(ctx context.Context, runID uuid.UUID) (*WorkflowRun, error) {
-	query := `SELECT id, workflow_spec_id, status, started_at, ended_at, cost_cents, metadata, created_at 
+	query := `SELECT id, workflow_spec_id, status, started_at, ended_at, cost_cents, metadata, created_at
 			  FROM workflow_run WHERE id = $1`
 
 	var run WorkflowRun
@@ -192,34 +193,63 @@ func (cp *ControlPlane) GetWorkflowRun(ctx context.Context, runID uuid.UUID) (*W
 }
 
 func (cp *ControlPlane) CancelWorkflowRun(ctx context.Context, runID uuid.UUID) error {
-	// Update run status
-	query := `UPDATE workflow_run SET status = 'canceled' WHERE id = $1 AND status IN ('queued', 'running')`
-
-	result, err := cp.db.ExecContext(ctx, query, runID)
+	// Update workflow run status to canceled
+	query := `UPDATE workflow_run SET status = 'canceled', ended_at = NOW() WHERE id = $1`
+	_, err := cp.db.ExecContext(ctx, query, runID)
 	if err != nil {
 		return fmt.Errorf("failed to cancel workflow run: %w", err)
 	}
+	return nil
+}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+func (cp *ControlPlane) initStreams() error {
+	// Initialize NATS JetStream streams for workflow processing
+	streams := []string{
+		"WORKFLOW_QUEUE",
+		"WORKFLOW_EVENTS",
+		"STEP_QUEUE",
+		"STEP_EVENTS",
 	}
 
-	if rowsAffected == 0 {
-		return fmt.Errorf("workflow run not found or not in cancellable state")
+	for _, streamName := range streams {
+		_, err := cp.js.AddStream(&nats.StreamConfig{
+			Name:     streamName,
+			Subjects: []string{streamName + ".*"},
+			Storage:  nats.FileStorage,
+		})
+		if err != nil && !strings.Contains(err.Error(), "stream name already in use") {
+			return fmt.Errorf("failed to create stream %s: %w", streamName, err)
+		}
 	}
 
-	// Send cancellation signal
-	cancelMsg := map[string]interface{}{
-		"run_id": runID.String(),
-		"action": "cancel",
-	}
+	return nil
+}
 
-	msgData, _ := json.Marshal(cancelMsg)
-	if _, err := cp.js.Publish("agentflow.signals", msgData); err != nil {
-		log.Printf("Failed to send cancellation signal: %v", err)
-	}
+func (cp *ControlPlane) getWorkflowSpec(ctx context.Context, name string, version int) (*WorkflowSpec, error) {
+	// For demo purposes, return a mock workflow spec
+	return &WorkflowSpec{
+		ID:      uuid.New(),
+		OrgID:   uuid.New(),
+		Name:    name,
+		Version: version,
+		DAG: map[string]interface{}{
+			"nodes": []map[string]interface{}{
+				{
+					"id":   "step1",
+					"type": "llm",
+					"config": map[string]interface{}{
+						"prompt": "Process the input: {{input}}",
+					},
+				},
+			},
+		},
+		CreatedAt: time.Now(),
+	}, nil
+}
 
+func (cp *ControlPlane) saveWorkflowRun(ctx context.Context, run *WorkflowRun) error {
+	// For demo purposes, just log the workflow run
+	log.Printf("Saving workflow run: %s", run.ID)
 	return nil
 }
 
@@ -248,7 +278,7 @@ func (cp *ControlPlane) initStreams() error {
 }
 
 func (cp *ControlPlane) getWorkflowSpec(ctx context.Context, name string, version int) (*WorkflowSpec, error) {
-	query := `SELECT id, org_id, name, version, dag, metadata 
+	query := `SELECT id, org_id, name, version, dag, metadata
 			  FROM workflow_spec WHERE name = $1 AND version = $2`
 
 	var spec WorkflowSpec

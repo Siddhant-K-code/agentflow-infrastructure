@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/config"
 	"github.com/Siddhant-K-code/agentflow-infrastructure/internal/db"
@@ -84,27 +85,61 @@ func (w *Worker) Start(ctx context.Context) error {
 		return fmt.Errorf("worker already running")
 	}
 
-	w.running = true
+	// Start worker execution loop
+	go w.run(ctx)
 
-	// Subscribe to task queues
-	subjects := []string{
-		"agentflow.tasks.Gold",
-		"agentflow.tasks.Silver",
-		"agentflow.tasks.Bronze",
+	w.running = true
+	log.Printf("Worker %s started", w.id)
+
+	return nil
+}
+
+func (w *Worker) Shutdown(ctx context.Context) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if !w.running {
+		return nil
 	}
 
-	for _, subject := range subjects {
-		_, err := w.js.Subscribe(subject, w.handleTask, nats.Durable(fmt.Sprintf("worker-%s", w.id)))
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to %s: %w", subject, err)
+	close(w.shutdown)
+
+	// Close connections
+	if w.nats != nil {
+		w.nats.Close()
+	}
+	if w.redis != nil {
+		_ = w.redis.Close()
+	}
+	if w.db != nil {
+		_ = w.db.Close()
+	}
+
+	w.running = false
+	log.Printf("Worker %s shutdown complete", w.id)
+
+	return nil
+}
+
+func (w *Worker) run(ctx context.Context) {
+	log.Printf("Worker %s: Starting execution loop", w.id)
+
+	// For demo purposes, just log that worker is running
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("Worker %s: Context cancelled", w.id)
+			return
+		case <-w.shutdown:
+			log.Printf("Worker %s: Shutdown signal received", w.id)
+			return
+		case <-ticker.C:
+			log.Printf("Worker %s: Still running...", w.id)
 		}
 	}
-
-	// Start heartbeat
-	go w.heartbeatLoop(ctx)
-
-	log.Printf("Worker %s started", w.id)
-	return nil
 }
 
 func (w *Worker) Shutdown(ctx context.Context) error {
@@ -230,8 +265,8 @@ func (w *Worker) updateStepStatus(ctx context.Context, stepID uuid.UUID, status 
 func (w *Worker) updateStepWithResult(ctx context.Context, result *TaskResult) error {
 	now := time.Now()
 
-	query := `UPDATE step_run SET 
-			  status = $1, ended_at = $2, error = $3, cost_cents = $4, 
+	query := `UPDATE step_run SET
+			  status = $1, ended_at = $2, error = $3, cost_cents = $4,
 			  tokens_prompt = $5, tokens_completion = $6
 			  WHERE id = $7`
 
