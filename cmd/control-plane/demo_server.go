@@ -97,36 +97,13 @@ func (s *DemoServer) getWorkflowRun(c *gin.Context) {
 }
 
 func (s *DemoServer) listWorkflowRuns(c *gin.Context) {
-	// Demo implementation - return mock data
-	runs := []aor.WorkflowRun{
-		{
-			ID:     uuid.New(),
-			Status: aor.RunStatusCompleted,
-			Metadata: map[string]interface{}{
-				"workflow_name": "document_analysis",
-				"cost_cents":    150,
-			},
-			CreatedAt: time.Now().Add(-1 * time.Hour),
-		},
-		{
-			ID:     uuid.New(),
-			Status: aor.RunStatusRunning,
-			Metadata: map[string]interface{}{
-				"workflow_name": "data_processing",
-				"cost_cents":    75,
-			},
-			CreatedAt: time.Now().Add(-30 * time.Minute),
-		},
-		{
-			ID:     uuid.New(),
-			Status: aor.RunStatusFailed,
-			Metadata: map[string]interface{}{
-				"workflow_name": "image_processing",
-				"cost_cents":    25,
-				"error":         "API rate limit exceeded",
-			},
-			CreatedAt: time.Now().Add(-15 * time.Minute),
-		},
+	// Get real workflow runs from database
+	runs, err := s.controlPlane.ListWorkflowRuns(c.Request.Context(), 10, 0)
+	if err != nil {
+		log.Printf("Failed to get workflow runs: %v", err)
+		// Fallback to empty list
+		c.JSON(200, gin.H{"runs": []aor.WorkflowRun{}})
+		return
 	}
 
 	c.JSON(200, gin.H{"runs": runs})

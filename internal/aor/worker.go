@@ -69,9 +69,10 @@ func NewWorker(cfg *config.Config) (*Worker, error) {
 		executors: make(map[ExecutorType]Executor),
 	}
 
-	// Initialize executors
-	worker.executors[ExecutorTypeLLM] = NewLLMExecutor(worker)
-	worker.executors[ExecutorTypeHTTP] = NewHTTPExecutor(worker)
+	// Initialize executors - use real executors for all types
+	worker.executors[ExecutorTypeLLM] = NewRealLLMExecutor(worker)
+	worker.executors[ExecutorTypeTool] = NewRealToolExecutor(worker)
+	worker.executors[ExecutorTypeHTTP] = NewRealHTTPExecutor(worker)
 	worker.executors[ExecutorTypeScript] = NewScriptExecutor(worker)
 
 	return worker, nil

@@ -81,6 +81,11 @@ func (m *Monitor) handleResult(msg *nats.Msg) {
 
 	log.Printf("Received result for task %s: %s", result.TaskID, result.Status)
 
+	// Update workflow run cost when step completes
+	if result.Status == TaskStatusSucceeded || result.Status == TaskStatusFailed {
+		m.updateWorkflowCost(context.Background(), result)
+	}
+
 	// Results are already processed by the scheduler
 	// This is mainly for monitoring and metrics
 	_ = msg.Ack() // Ignore error for monitoring ack
@@ -162,4 +167,34 @@ func (m *Monitor) checkWorkerHealth(ctx context.Context) {
 	log.Printf("Active workers: %d", activeWorkers)
 
 	// Could implement alerts for low worker count, etc.
+}
+
+func (m *Monitor) updateWorkflowCost(ctx context.Context, result TaskResult) {
+	// Get the workflow run ID from the step run
+	query := `SELECT workflow_run_id FROM step_run WHERE id = $1`
+	var workflowRunID string
+	err := m.cp.db.QueryRowContext(ctx, query, result.TaskID).Scan(&workflowRunID)
+	if err != nil {
+		log.Printf("Failed to get workflow run ID for task %s: %v", result.TaskID, err)
+		return
+	}
+
+	// Calculate total cost for this workflow run
+	costQuery := `SELECT COALESCE(SUM(cost_cents), 0) FROM step_run WHERE workflow_run_id = $1`
+	var totalCost int64
+	err = m.cp.db.QueryRowContext(ctx, costQuery, workflowRunID).Scan(&totalCost)
+	if err != nil {
+		log.Printf("Failed to calculate total cost for workflow %s: %v", workflowRunID, err)
+		return
+	}
+
+	// Update the workflow run with the total cost
+	updateQuery := `UPDATE workflow_run SET cost_cents = $1 WHERE id = $2`
+	_, err = m.cp.db.ExecContext(ctx, updateQuery, totalCost, workflowRunID)
+	if err != nil {
+		log.Printf("Failed to update workflow run cost for %s: %v", workflowRunID, err)
+		return
+	}
+
+	log.Printf("Updated workflow run %s cost to %d cents", workflowRunID, totalCost)
 }

@@ -209,6 +209,41 @@ func (cp *ControlPlane) CancelWorkflowRun(ctx context.Context, runID uuid.UUID) 
 	return nil
 }
 
+func (cp *ControlPlane) ListWorkflowRuns(ctx context.Context, limit, offset int) ([]WorkflowRun, error) {
+	query := `SELECT id, workflow_spec_id, status, started_at, ended_at, cost_cents, metadata, created_at
+			  FROM workflow_run 
+			  ORDER BY created_at DESC 
+			  LIMIT $1 OFFSET $2`
+
+	rows, err := cp.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query workflow runs: %w", err)
+	}
+	defer rows.Close()
+
+	var runs []WorkflowRun
+	for rows.Next() {
+		var run WorkflowRun
+		var metadataJSON []byte
+
+		err := rows.Scan(
+			&run.ID, &run.WorkflowSpecID, &run.Status, &run.StartedAt, &run.EndedAt,
+			&run.CostCents, &metadataJSON, &run.CreatedAt,
+		)
+		if err != nil {
+			continue
+		}
+
+		if err := json.Unmarshal(metadataJSON, &run.Metadata); err != nil {
+			run.Metadata = make(map[string]interface{})
+		}
+
+		runs = append(runs, run)
+	}
+
+	return runs, nil
+}
+
 func (cp *ControlPlane) initStreams() error {
 	// Initialize NATS JetStream streams for workflow processing
 	streams := []string{
@@ -257,7 +292,21 @@ func (cp *ControlPlane) getWorkflowSpec(ctx context.Context, name string, versio
 }
 
 func (cp *ControlPlane) saveWorkflowRun(ctx context.Context, run *WorkflowRun) error {
-	// For demo purposes, just log the workflow run
-	log.Printf("Saving workflow run: %s", run.ID)
+	query := `INSERT INTO workflow_run (id, workflow_spec_id, status, created_at, cost_cents, metadata)
+			  VALUES ($1, $2, $3, $4, $5, $6)`
+	
+	metadataJSON, err := json.Marshal(run.Metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata: %w", err)
+	}
+	
+	_, err = cp.db.ExecContext(ctx, query,
+		run.ID, run.WorkflowSpecID, run.Status, run.CreatedAt, run.CostCents, metadataJSON,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert workflow run: %w", err)
+	}
+	
+	log.Printf("Saved workflow run: %s", run.ID)
 	return nil
 }
