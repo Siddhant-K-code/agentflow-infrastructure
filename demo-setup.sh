@@ -138,7 +138,18 @@ fi
 
 # Start the control plane
 print_status "Starting AgentFlow Control Plane..."
-export $(cat .env.demo | xargs)
+export DB_HOST=localhost
+export DB_USER=agentflow
+export DB_PASSWORD=agentflow_password
+export DB_NAME=agentflow
+export DB_SSL_MODE=disable
+export CLICKHOUSE_HOST=localhost
+export CLICKHOUSE_USER=agentflow
+export CLICKHOUSE_PASSWORD=agentflow_password
+export CLICKHOUSE_DB=agentflow
+export REDIS_HOST=localhost
+export REDIS_PASSWORD=agentflow_password
+export NATS_URL=nats://localhost:4222
 ./bin/control-plane &
 CONTROL_PLANE_PID=$!
 
