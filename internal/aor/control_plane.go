@@ -211,8 +211,8 @@ func (cp *ControlPlane) CancelWorkflowRun(ctx context.Context, runID uuid.UUID) 
 
 func (cp *ControlPlane) ListWorkflowRuns(ctx context.Context, limit, offset int) ([]WorkflowRun, error) {
 	query := `SELECT id, workflow_spec_id, status, started_at, ended_at, cost_cents, metadata, created_at
-			  FROM workflow_run 
-			  ORDER BY created_at DESC 
+			  FROM workflow_run
+			  ORDER BY created_at DESC
 			  LIMIT $1 OFFSET $2`
 
 	rows, err := cp.db.QueryContext(ctx, query, limit, offset)
@@ -294,19 +294,19 @@ func (cp *ControlPlane) getWorkflowSpec(ctx context.Context, name string, versio
 func (cp *ControlPlane) saveWorkflowRun(ctx context.Context, run *WorkflowRun) error {
 	query := `INSERT INTO workflow_run (id, workflow_spec_id, status, created_at, cost_cents, metadata)
 			  VALUES ($1, $2, $3, $4, $5, $6)`
-	
+
 	metadataJSON, err := json.Marshal(run.Metadata)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
 	}
-	
+
 	_, err = cp.db.ExecContext(ctx, query,
 		run.ID, run.WorkflowSpecID, run.Status, run.CreatedAt, run.CostCents, metadataJSON,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert workflow run: %w", err)
 	}
-	
+
 	log.Printf("Saved workflow run: %s", run.ID)
 	return nil
 }
