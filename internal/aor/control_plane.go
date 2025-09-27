@@ -45,15 +45,21 @@ func NewControlPlane(cfg *config.Config) (*ControlPlane, error) {
 		DB:       cfg.Redis.DB,
 	})
 
-	// Initialize NATS
-	nc, err := nats.Connect(cfg.NATS.URL)
+	// Initialize NATS (optional for demo)
+	var nc *nats.Conn
+	var js nats.JetStreamContext
+	nc, err = nats.Connect(cfg.NATS.URL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to NATS: %w", err)
-	}
-
-	js, err := nc.JetStream()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get JetStream context: %w", err)
+		log.Printf("Warning: failed to connect to NATS: %v (continuing without NATS for demo)", err)
+		nc = nil
+		js = nil
+	} else {
+		js, err = nc.JetStream()
+		if err != nil {
+			log.Printf("Warning: failed to get JetStream context: %v (continuing without NATS for demo)", err)
+			nc = nil
+			js = nil
+		}
 	}
 
 	cp := &ControlPlane{
@@ -66,7 +72,7 @@ func NewControlPlane(cfg *config.Config) (*ControlPlane, error) {
 	}
 
 	// Initialize scheduler and monitor
-	cp.scheduler = NewScheduler(pgDB, redisClient, cp.nats, js)
+	cp.scheduler = NewScheduler(pgDB, redisClient, nc, js)
 	cp.monitor = NewMonitor(cp)
 
 	return cp, nil

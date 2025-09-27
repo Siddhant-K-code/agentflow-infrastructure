@@ -35,15 +35,19 @@ func (m *Monitor) Start(ctx context.Context) error {
 	m.running = true
 
 	// Subscribe to results (optional for demo)
-	_, err := m.cp.js.Subscribe("agentflow.results", m.handleResult, nats.Durable("monitor-results"))
-	if err != nil {
-		log.Printf("Warning: failed to subscribe to results: %v", err)
-	}
+	if m.cp.js != nil {
+		_, err := m.cp.js.Subscribe("agentflow.results", m.handleResult, nats.Durable("monitor-results"))
+		if err != nil {
+			log.Printf("Warning: failed to subscribe to results: %v", err)
+		}
 
-	// Subscribe to heartbeats (optional for demo)
-	_, err = m.cp.js.Subscribe("agentflow.heartbeats", m.handleHeartbeat, nats.Durable("monitor-heartbeats"))
-	if err != nil {
-		log.Printf("Warning: failed to subscribe to heartbeats: %v", err)
+		// Subscribe to heartbeats (optional for demo)
+		_, err = m.cp.js.Subscribe("agentflow.heartbeats", m.handleHeartbeat, nats.Durable("monitor-heartbeats"))
+		if err != nil {
+			log.Printf("Warning: failed to subscribe to heartbeats: %v", err)
+		}
+	} else {
+		log.Printf("NATS not available, skipping subscriptions for demo")
 	}
 
 	// Start monitoring loops
