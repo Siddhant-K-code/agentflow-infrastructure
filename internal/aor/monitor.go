@@ -34,16 +34,20 @@ func (m *Monitor) Start(ctx context.Context) error {
 
 	m.running = true
 
-	// Subscribe to results
-	_, err := m.cp.js.Subscribe("agentflow.results", m.handleResult, nats.Durable("monitor-results"))
-	if err != nil {
-		return err
-	}
+	// Subscribe to results (optional for demo)
+	if m.cp.js != nil {
+		_, err := m.cp.js.Subscribe("agentflow.results", m.handleResult, nats.Durable("monitor-results"))
+		if err != nil {
+			log.Printf("Warning: failed to subscribe to results: %v", err)
+		}
 
-	// Subscribe to heartbeats
-	_, err = m.cp.js.Subscribe("agentflow.heartbeats", m.handleHeartbeat, nats.Durable("monitor-heartbeats"))
-	if err != nil {
-		return err
+		// Subscribe to heartbeats (optional for demo)
+		_, err = m.cp.js.Subscribe("agentflow.heartbeats", m.handleHeartbeat, nats.Durable("monitor-heartbeats"))
+		if err != nil {
+			log.Printf("Warning: failed to subscribe to heartbeats: %v", err)
+		}
+	} else {
+		log.Printf("NATS not available, skipping subscriptions for demo")
 	}
 
 	// Start monitoring loops
@@ -76,6 +80,11 @@ func (m *Monitor) handleResult(msg *nats.Msg) {
 	}
 
 	log.Printf("Received result for task %s: %s", result.TaskID, result.Status)
+
+	// Update workflow run cost when step completes
+	if result.Status == TaskStatusSucceeded || result.Status == TaskStatusFailed {
+		m.updateWorkflowCost(context.Background(), result)
+	}
 
 	// Results are already processed by the scheduler
 	// This is mainly for monitoring and metrics
@@ -118,9 +127,9 @@ func (m *Monitor) monitoringLoop(ctx context.Context) {
 
 func (m *Monitor) checkStuckTasks(ctx context.Context) {
 	// Find tasks that have been running too long
-	query := `SELECT id, workflow_run_id, node_id, started_at 
-			  FROM step_run 
-			  WHERE status = 'running' 
+	query := `SELECT id, workflow_run_id, node_id, started_at
+			  FROM step_run
+			  WHERE status = 'running'
 			  AND started_at < NOW() - INTERVAL '1 hour'`
 
 	rows, err := m.cp.db.QueryContext(ctx, query)
@@ -158,4 +167,34 @@ func (m *Monitor) checkWorkerHealth(ctx context.Context) {
 	log.Printf("Active workers: %d", activeWorkers)
 
 	// Could implement alerts for low worker count, etc.
+}
+
+func (m *Monitor) updateWorkflowCost(ctx context.Context, result TaskResult) {
+	// Get the workflow run ID from the step run
+	query := `SELECT workflow_run_id FROM step_run WHERE id = $1`
+	var workflowRunID string
+	err := m.cp.db.QueryRowContext(ctx, query, result.TaskID).Scan(&workflowRunID)
+	if err != nil {
+		log.Printf("Failed to get workflow run ID for task %s: %v", result.TaskID, err)
+		return
+	}
+
+	// Calculate total cost for this workflow run
+	costQuery := `SELECT COALESCE(SUM(cost_cents), 0) FROM step_run WHERE workflow_run_id = $1`
+	var totalCost int64
+	err = m.cp.db.QueryRowContext(ctx, costQuery, workflowRunID).Scan(&totalCost)
+	if err != nil {
+		log.Printf("Failed to calculate total cost for workflow %s: %v", workflowRunID, err)
+		return
+	}
+
+	// Update the workflow run with the total cost
+	updateQuery := `UPDATE workflow_run SET cost_cents = $1 WHERE id = $2`
+	_, err = m.cp.db.ExecContext(ctx, updateQuery, totalCost, workflowRunID)
+	if err != nil {
+		log.Printf("Failed to update workflow run cost for %s: %v", workflowRunID, err)
+		return
+	}
+
+	log.Printf("Updated workflow run %s cost to %d cents", workflowRunID, totalCost)
 }

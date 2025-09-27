@@ -31,6 +31,14 @@ func main() {
 		log.Fatalf("Failed to start control plane: %v", err)
 	}
 
+	// Start demo HTTP server
+	server := NewDemoServer(cp)
+	go func() {
+		if err := server.Start(8080); err != nil {
+			log.Printf("HTTP server error: %v", err)
+		}
+	}()
+
 	// Wait for shutdown signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)

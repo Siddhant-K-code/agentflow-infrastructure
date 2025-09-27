@@ -180,6 +180,7 @@ type ExecutorType string
 
 const (
 	ExecutorTypeLLM      ExecutorType = "llm"
+	ExecutorTypeTool     ExecutorType = "tool"
 	ExecutorTypeHTTP     ExecutorType = "http"
 	ExecutorTypeScript   ExecutorType = "script"
 	ExecutorTypeWASM     ExecutorType = "wasm"

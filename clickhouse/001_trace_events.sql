@@ -3,6 +3,9 @@ CREATE DATABASE IF NOT EXISTS agentflow;
 
 USE agentflow;
 
+-- Enable experimental Object type
+SET allow_experimental_object_type = 1;
+
 -- Main trace events table
 CREATE TABLE IF NOT EXISTS trace_event (
     org_id UUID,
@@ -10,7 +13,7 @@ CREATE TABLE IF NOT EXISTS trace_event (
     step_id UUID,
     ts DateTime64(3),
     event_type LowCardinality(String),
-    payload JSON,
+    payload String,  -- Changed from JSON to String for compatibility
     cost_cents Int64 DEFAULT 0,
     tokens_prompt Int32 DEFAULT 0,
     tokens_completion Int32 DEFAULT 0,
@@ -53,7 +56,7 @@ AS SELECT
     avg(latency_ms) as avg_latency_ms,
     quantile(0.95)(latency_ms) as p95_latency_ms,
     count() as request_count,
-    countIf(event_type = 'completed' AND payload['status'] = 'failed') as failure_count
+    countIf(event_type = 'completed' AND JSONExtractString(payload, 'status') = 'failed') as failure_count
 FROM trace_event
 WHERE event_type IN ('completed', 'model_io')
 GROUP BY org_id, quality_tier, hour;
