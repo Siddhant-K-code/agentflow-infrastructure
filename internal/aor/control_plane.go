@@ -87,7 +87,8 @@ func (cp *ControlPlane) Start(ctx context.Context) error {
 
 	// Initialize NATS streams
 	if err := cp.initStreams(); err != nil {
-		return fmt.Errorf("failed to initialize streams: %w", err)
+		log.Printf("Warning: failed to initialize streams: %v", err)
+		// Continue without streams for demo purposes
 	}
 
 	// Scheduler doesn't need explicit start in this implementation

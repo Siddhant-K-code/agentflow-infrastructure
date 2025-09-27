@@ -34,16 +34,16 @@ func (m *Monitor) Start(ctx context.Context) error {
 
 	m.running = true
 
-	// Subscribe to results
+	// Subscribe to results (optional for demo)
 	_, err := m.cp.js.Subscribe("agentflow.results", m.handleResult, nats.Durable("monitor-results"))
 	if err != nil {
-		return err
+		log.Printf("Warning: failed to subscribe to results: %v", err)
 	}
 
-	// Subscribe to heartbeats
+	// Subscribe to heartbeats (optional for demo)
 	_, err = m.cp.js.Subscribe("agentflow.heartbeats", m.handleHeartbeat, nats.Durable("monitor-heartbeats"))
 	if err != nil {
-		return err
+		log.Printf("Warning: failed to subscribe to heartbeats: %v", err)
 	}
 
 	// Start monitoring loops
@@ -118,9 +118,9 @@ func (m *Monitor) monitoringLoop(ctx context.Context) {
 
 func (m *Monitor) checkStuckTasks(ctx context.Context) {
 	// Find tasks that have been running too long
-	query := `SELECT id, workflow_run_id, node_id, started_at 
-			  FROM step_run 
-			  WHERE status = 'running' 
+	query := `SELECT id, workflow_run_id, node_id, started_at
+			  FROM step_run
+			  WHERE status = 'running'
 			  AND started_at < NOW() - INTERVAL '1 hour'`
 
 	rows, err := m.cp.db.QueryContext(ctx, query)
